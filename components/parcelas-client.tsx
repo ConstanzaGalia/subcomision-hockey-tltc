@@ -348,7 +348,7 @@ export function ParcelasClient({ initialVentas }: { initialVentas: Venta[] }) {
                   void handleConfirmDelete()
                 }}
                 disabled={deleting}
-                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                className="bg-destructive text-white hover:bg-destructive/90 hover:text-white"
               >
                 {deleting ? "Eliminando..." : "Eliminar"}
               </AlertDialogAction>
@@ -416,11 +416,11 @@ export function ParcelasClient({ initialVentas }: { initialVentas: Venta[] }) {
                             <Button
                               variant="ghost"
                               size="icon"
-                              className="h-8 w-8 text-white hover:font-bold"
+                              className="h-8 w-8 text-destructive hover:font-bold"
                               onClick={() => openDeleteDialog(venta)}
                               title="Eliminar"
                             >
-                              <Trash2 className="h-4 w-4 text-white" />
+                              <Trash2 className="h-4 w-4" />
                             </Button>
                           </div>
                         </TableCell>
