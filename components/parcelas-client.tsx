@@ -37,6 +37,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Plus, FileDown, DollarSign, Users, Pencil, Trash2 } from "lucide-react"
 import { toast } from "sonner"
 import { generateReceipt } from "@/lib/generate-receipt"
+import { updateParcelaVenta, deleteParcelaVenta } from "@/app/dashboard/parcelas/actions"
 
 interface Venta {
   id: string
@@ -129,17 +130,13 @@ export function ParcelasClient({ initialVentas }: { initialVentas: Venta[] }) {
     e.preventDefault()
     if (!editingVenta) return
     setSavingEdit(true)
-    const supabase = createClient()
-    const { error } = await supabase
-      .from("parcelas_ventas")
-      .update({
-        nombre_apellido: editNombre.trim(),
-        precio: parseFloat(editPrecio),
-      })
-      .eq("id", editingVenta.id)
+    const result = await updateParcelaVenta(editingVenta.id, {
+      nombre_apellido: editNombre.trim(),
+      precio: parseFloat(editPrecio),
+    })
 
-    if (error) {
-      toast.error("Error al actualizar la venta", { description: error.message })
+    if (!result.ok) {
+      toast.error("Error al actualizar la venta", { description: result.error })
       setSavingEdit(false)
       return
     }
@@ -165,14 +162,10 @@ export function ParcelasClient({ initialVentas }: { initialVentas: Venta[] }) {
   async function handleConfirmDelete() {
     if (!ventaToDelete) return
     setDeleting(true)
-    const supabase = createClient()
-    const { error } = await supabase
-      .from("parcelas_ventas")
-      .delete()
-      .eq("id", ventaToDelete.id)
+    const result = await deleteParcelaVenta(ventaToDelete.id)
 
-    if (error) {
-      toast.error("Error al eliminar la venta", { description: error.message })
+    if (!result.ok) {
+      toast.error("Error al eliminar la venta", { description: result.error })
       setDeleting(false)
       setOpenDelete(false)
       setVentaToDelete(null)
