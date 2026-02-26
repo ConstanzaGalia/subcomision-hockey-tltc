@@ -416,11 +416,11 @@ export function ParcelasClient({ initialVentas }: { initialVentas: Venta[] }) {
                             <Button
                               variant="ghost"
                               size="icon"
-                              className="h-8 w-8 text-destructive hover:text-destructive"
+                              className="h-8 w-8 text-white hover:font-bold"
                               onClick={() => openDeleteDialog(venta)}
                               title="Eliminar"
                             >
-                              <Trash2 className="h-4 w-4" />
+                              <Trash2 className="h-4 w-4 text-white" />
                             </Button>
                           </div>
                         </TableCell>
