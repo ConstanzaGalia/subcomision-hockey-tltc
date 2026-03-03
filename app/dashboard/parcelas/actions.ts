@@ -48,6 +48,41 @@ export async function updateParcelaVenta(
   }
 }
 
+export async function toggleAnotadaEnCancha(
+  ventaId: string,
+  anotada_en_cancha: boolean
+): Promise<ParcelasActionResult> {
+  const supabase = await createClient()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+  if (!user) return { ok: false, error: "No autorizado" }
+
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("role")
+    .eq("id", user.id)
+    .single()
+  const userRole = (profile?.role as UserRole) ?? "ENTRENADOR"
+  if (!canManageParcelas(userRole)) {
+    return { ok: false, error: "No tenés permiso para modificar ventas" }
+  }
+
+  try {
+    const admin = createAdminClient()
+    const { error } = await admin
+      .from("parcelas_ventas")
+      .update({ anotada_en_cancha })
+      .eq("id", ventaId)
+
+    if (error) return { ok: false, error: error.message }
+    return { ok: true }
+  } catch (e) {
+    const message = e instanceof Error ? e.message : "Error al actualizar"
+    return { ok: false, error: message }
+  }
+}
+
 export async function deleteParcelaVenta(ventaId: string): Promise<ParcelasActionResult> {
   const supabase = await createClient()
   const {

@@ -37,7 +37,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Plus, FileDown, DollarSign, Users, Pencil, Trash2 } from "lucide-react"
 import { toast } from "sonner"
 import { generateReceipt } from "@/lib/generate-receipt"
-import { updateParcelaVenta, deleteParcelaVenta } from "@/app/dashboard/parcelas/actions"
+import { updateParcelaVenta, deleteParcelaVenta, toggleAnotadaEnCancha } from "@/app/dashboard/parcelas/actions"
+import { Checkbox } from "@/components/ui/checkbox"
 
 interface Venta {
   id: string
@@ -45,6 +46,7 @@ interface Venta {
   precio: number
   created_at: string
   user_id: string
+  anotada_en_cancha?: boolean
 }
 
 export function ParcelasClient({ initialVentas }: { initialVentas: Venta[] }) {
@@ -61,7 +63,22 @@ export function ParcelasClient({ initialVentas }: { initialVentas: Venta[] }) {
   const [openDelete, setOpenDelete] = useState(false)
   const [ventaToDelete, setVentaToDelete] = useState<Venta | null>(null)
   const [deleting, setDeleting] = useState(false)
+  const [togglingId, setTogglingId] = useState<string | null>(null)
   const router = useRouter()
+
+  async function handleToggleAnotada(ventaId: string, checked: boolean) {
+    setTogglingId(ventaId)
+    const result = await toggleAnotadaEnCancha(ventaId, checked)
+    if (!result.ok) {
+      toast.error("Error al actualizar", { description: result.error })
+    } else {
+      setVentas((prev) =>
+        prev.map((v) => (v.id === ventaId ? { ...v, anotada_en_cancha: checked } : v))
+      )
+      router.refresh()
+    }
+    setTogglingId(null)
+  }
 
   const totalRecaudado = ventas.reduce((sum, v) => sum + Number(v.precio), 0)
   const totalVentas = ventas.length
@@ -368,6 +385,7 @@ export function ParcelasClient({ initialVentas }: { initialVentas: Venta[] }) {
                     <TableHead>Nombre y Apellido</TableHead>
                     <TableHead>Precio</TableHead>
                     <TableHead>Fecha</TableHead>
+                    <TableHead className="w-[10rem] text-center">Anotada en cancha</TableHead>
                     <TableHead className="w-24 text-right">Recibo</TableHead>
                     <TableHead className="w-28 text-right">Acciones</TableHead>
                   </TableRow>
@@ -384,6 +402,16 @@ export function ParcelasClient({ initialVentas }: { initialVentas: Venta[] }) {
                         <TableCell className="font-medium text-foreground">{venta.nombre_apellido}</TableCell>
                         <TableCell className="text-foreground">USD {Number(venta.precio).toLocaleString("es-AR")}</TableCell>
                         <TableCell className="text-muted-foreground">{formattedDate}</TableCell>
+                        <TableCell className="text-center">
+                          <Checkbox
+                            checked={venta.anotada_en_cancha ?? false}
+                            onCheckedChange={(checked) =>
+                              handleToggleAnotada(venta.id, checked === true)
+                            }
+                            disabled={togglingId === venta.id}
+                            title="Anotada en la cancha"
+                          />
+                        </TableCell>
                         <TableCell className="text-right">
                           <Button
                             variant="ghost"
