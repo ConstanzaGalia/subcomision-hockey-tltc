@@ -30,6 +30,7 @@ export function getAllRoles(): UserRole[] {
 const SECTION_ACCESS: Record<string, UserRole[]> = {
   "/dashboard": ["ADMIN", "SUBCOMISION", "COORDINADOR_DEPORTIVO", "ENTRENADOR"],
   "/dashboard/parcelas": ["ADMIN", "SUBCOMISION"],
+  "/dashboard/prestamos": ["ADMIN", "SUBCOMISION"],
   "/dashboard/admin": ["ADMIN"],
 }
 

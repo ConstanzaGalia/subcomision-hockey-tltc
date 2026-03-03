@@ -2,7 +2,7 @@ import Link from "next/link"
 import { redirect } from "next/navigation"
 import { createClient } from "@/lib/supabase/server"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { LandPlot, DollarSign, Users, ShieldCheck } from "lucide-react"
+import { LandPlot, DollarSign, Users, ShieldCheck, Banknote } from "lucide-react"
 import { hasAccess, type UserRole } from "@/lib/roles"
 
 export default async function DashboardPage() {
@@ -21,6 +21,7 @@ export default async function DashboardPage() {
   const userRole = (profile?.role as UserRole) ?? "ENTRENADOR"
 
   const canSeeParcelas = hasAccess(userRole, "/dashboard/parcelas")
+  const canSeePrestamos = hasAccess(userRole, "/dashboard/prestamos")
   const canSeeAdmin = hasAccess(userRole, "/dashboard/admin")
 
   let totalVentas = 0
@@ -40,6 +41,14 @@ export default async function DashboardPage() {
       label: "Venta de Parcelas",
       description: "Registrar ventas y descargar recibos",
       icon: LandPlot,
+    })
+  }
+  if (canSeePrestamos) {
+    sections.push({
+      href: "/dashboard/prestamos",
+      label: "Prestamos",
+      description: "Gestion de prestamos",
+      icon: Banknote,
     })
   }
   if (canSeeAdmin) {
