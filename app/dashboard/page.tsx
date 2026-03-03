@@ -1,9 +1,10 @@
 import Link from "next/link"
 import { redirect } from "next/navigation"
 import { createClient } from "@/lib/supabase/server"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { LandPlot, DollarSign, Users, ShieldCheck, Banknote } from "lucide-react"
+import { Card, CardContent } from "@/components/ui/card"
+import { LandPlot, ShieldCheck, Banknote } from "lucide-react"
 import { hasAccess, type UserRole } from "@/lib/roles"
+import { DashboardStats } from "@/components/dashboard-stats"
 
 export default async function DashboardPage() {
   const supabase = await createClient()
@@ -24,15 +25,35 @@ export default async function DashboardPage() {
   const canSeePrestamos = hasAccess(userRole, "/dashboard/prestamos")
   const canSeeAdmin = hasAccess(userRole, "/dashboard/admin")
 
-  let totalVentas = 0
-  let totalRecaudado = 0
+  let totalParcelas = 0
+  let totalPrestamos = 0
   if (canSeeParcelas) {
     const { data: ventas } = await supabase
       .from("parcelas_ventas")
       .select("id, precio")
-    totalVentas = ventas?.length ?? 0
-    totalRecaudado = ventas?.reduce((sum, v) => sum + Number(v.precio), 0) ?? 0
+    totalParcelas = ventas?.reduce((sum, v) => sum + Number(v.precio), 0) ?? 0
   }
+  if (canSeePrestamos) {
+    const { data: prestamos } = await supabase
+      .from("prestamos")
+      .select("monto")
+    totalPrestamos = prestamos?.reduce((sum, p) => sum + Number(p.monto), 0) ?? 0
+  }
+  const totalRecaudadoCancha = totalParcelas + totalPrestamos
+
+  let objetivoMonto = 0
+  try {
+    const { data: objetivo } = await supabase
+      .from("objetivo_cancha")
+      .select("monto_usd")
+      .eq("id", "default")
+      .single()
+    if (objetivo?.monto_usd != null) objetivoMonto = Number(objetivo.monto_usd)
+  } catch {
+    // Tabla objetivo_cancha puede no existir aún
+  }
+
+  const canEditObjetivo = canSeeParcelas || canSeePrestamos
 
   const sections: { href: string; label: string; description: string; icon: typeof LandPlot }[] = []
   if (canSeeParcelas) {
@@ -69,36 +90,13 @@ export default async function DashboardPage() {
         </p>
       </div>
 
-      {/* Quick Stats: solo parcelas si tiene acceso */}
-      {canSeeParcelas && (
-        <div className="mb-8 grid gap-4 grid-cols-1 sm:grid-cols-2">
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">
-                Total Recaudado
-              </CardTitle>
-              <DollarSign className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-foreground">
-                USD {totalRecaudado.toLocaleString("es-AR")}
-              </div>
-              <p className="mt-1 text-xs text-muted-foreground">En venta de parcelas</p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">
-                Parcelas Vendidas
-              </CardTitle>
-              <Users className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-foreground">{totalVentas}</div>
-              <p className="mt-1 text-xs text-muted-foreground">Ventas registradas</p>
-            </CardContent>
-          </Card>
-        </div>
+      {/* Quick Stats: total recaudado y objetivo (solo visible para quien tiene acceso a parcelas o préstamos) */}
+      {(canSeeParcelas || canSeePrestamos) && (
+        <DashboardStats
+          totalRecaudadoCancha={totalRecaudadoCancha}
+          objetivoMonto={objetivoMonto}
+          canEditObjetivo={canEditObjetivo}
+        />
       )}
 
       {/* Secciones: solo las que el rol puede ver */}
