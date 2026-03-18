@@ -37,8 +37,10 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Plus, FileDown, DollarSign, Users, Pencil, Trash2 } from "lucide-react"
 import { toast } from "sonner"
 import { generateReceipt } from "@/lib/generate-receipt"
-import { updateParcelaVenta, deleteParcelaVenta, toggleAnotadaEnCancha } from "@/app/dashboard/parcelas/actions"
+import { deleteParcelaVenta, toggleAnotadaEnCancha } from "@/app/dashboard/parcelas/actions"
 import { Checkbox } from "@/components/ui/checkbox"
+
+type ParcelaAsignacion = { parcela_numero: number }
 
 interface Venta {
   id: string
@@ -47,6 +49,7 @@ interface Venta {
   created_at: string
   user_id: string
   anotada_en_cancha?: boolean
+  parcelas_asignaciones?: ParcelaAsignacion[] | null
 }
 
 export function ParcelasClient({ initialVentas }: { initialVentas: Venta[] }) {
@@ -54,17 +57,47 @@ export function ParcelasClient({ initialVentas }: { initialVentas: Venta[] }) {
   const [open, setOpen] = useState(false)
   const [nombre, setNombre] = useState("")
   const [precio, setPrecio] = useState("")
+  const [parcelasCsv, setParcelasCsv] = useState("")
   const [loading, setLoading] = useState(false)
   const [openEdit, setOpenEdit] = useState(false)
   const [editingVenta, setEditingVenta] = useState<Venta | null>(null)
   const [editNombre, setEditNombre] = useState("")
   const [editPrecio, setEditPrecio] = useState("")
+  const [editParcelasCsv, setEditParcelasCsv] = useState("")
   const [savingEdit, setSavingEdit] = useState(false)
   const [openDelete, setOpenDelete] = useState(false)
   const [ventaToDelete, setVentaToDelete] = useState<Venta | null>(null)
   const [deleting, setDeleting] = useState(false)
   const [togglingId, setTogglingId] = useState<string | null>(null)
   const router = useRouter()
+
+  function parseParcelasCsv(value: string): number[] {
+    const trimmed = value.trim()
+    if (!trimmed) return []
+    const parts = trimmed.split(",").map((p) => p.trim()).filter(Boolean)
+    const nums = parts.map((p) => Number.parseInt(p, 10))
+    if (nums.some((n) => !Number.isFinite(n))) return [NaN]
+    if (nums.some((n, i) => String(n) !== parts[i])) return [NaN]
+    return nums
+  }
+
+  function validateParcelas(nums: number[]): string | null {
+    if (nums.length === 0) return null
+    if (nums.some((n) => Number.isNaN(n))) return "Formato inválido. Usá números separados por coma (ej: 1,2,3)"
+    if (nums.some((n) => !Number.isInteger(n))) return "Los números de parcela deben ser enteros"
+    if (nums.some((n) => n < 1 || n > 500)) return "Los números de parcela deben estar entre 1 y 500"
+    const set = new Set(nums)
+    if (set.size !== nums.length) return "No repitas números de parcela en la misma venta"
+    return null
+  }
+
+  function getParcelasList(venta: Venta): number[] {
+    const list = (venta.parcelas_asignaciones ?? [])
+      .map((a) => Number(a.parcela_numero))
+      .filter((n) => Number.isFinite(n))
+      .sort((a, b) => a - b)
+    return list
+  }
 
   async function handleToggleAnotada(ventaId: string, checked: boolean) {
     setTogglingId(ventaId)
@@ -81,11 +114,19 @@ export function ParcelasClient({ initialVentas }: { initialVentas: Venta[] }) {
   }
 
   const totalRecaudado = ventas.reduce((sum, v) => sum + Number(v.precio), 0)
-  const totalVentas = ventas.length
+  const totalParcelasVendidas = ventas.reduce((sum, v) => sum + getParcelasList(v).length, 0)
 
   async function handleAddVenta(e: React.FormEvent) {
     e.preventDefault()
     setLoading(true)
+
+    const parcelasNums = parseParcelasCsv(parcelasCsv)
+    const parcelasErr = validateParcelas(parcelasNums)
+    if (parcelasErr) {
+      toast.error("Parcelas inválidas", { description: parcelasErr })
+      setLoading(false)
+      return
+    }
 
     const supabase = createClient()
     const {
@@ -98,27 +139,34 @@ export function ParcelasClient({ initialVentas }: { initialVentas: Venta[] }) {
       return
     }
 
-    const { data, error } = await supabase
-      .from("parcelas_ventas")
-      .insert({
-        nombre_apellido: nombre.trim(),
-        precio: parseFloat(precio),
-        user_id: user.id,
-      })
-      .select()
-      .single()
+    const { data, error } = await supabase.rpc("create_parcela_venta_with_parcelas", {
+      p_nombre_apellido: nombre.trim(),
+      p_precio: parseFloat(precio),
+      p_parcela_numeros: parcelasNums.length ? parcelasNums : null,
+    })
 
     if (error) {
-      toast.error("Error al agregar la venta", {
-        description: error.message,
-      })
+      const lowered = error.message.toLowerCase()
+      const msg =
+        lowered.includes("duplicate") ||
+        lowered.includes("unique") ||
+        lowered.includes("idx_parcelas_asignaciones_parcela_numero_unique")
+          ? "Alguna de esas parcelas ya está asignada a otra venta"
+          : error.message
+      toast.error("Error al agregar la venta", { description: msg })
       setLoading(false)
       return
     }
 
-    setVentas([data, ...ventas])
+    const ventaRow = data as unknown as Venta
+    const enriched: Venta = {
+      ...ventaRow,
+      parcelas_asignaciones: parcelasNums.map((n) => ({ parcela_numero: n })),
+    }
+    setVentas([enriched, ...ventas])
     setNombre("")
     setPrecio("")
+    setParcelasCsv("")
     setOpen(false)
     setLoading(false)
     toast.success("Venta registrada exitosamente")
@@ -140,6 +188,7 @@ export function ParcelasClient({ initialVentas }: { initialVentas: Venta[] }) {
     setEditingVenta(venta)
     setEditNombre(venta.nombre_apellido)
     setEditPrecio(String(venta.precio))
+    setEditParcelasCsv(getParcelasList(venta).join(","))
     setOpenEdit(true)
   }
 
@@ -147,20 +196,44 @@ export function ParcelasClient({ initialVentas }: { initialVentas: Venta[] }) {
     e.preventDefault()
     if (!editingVenta) return
     setSavingEdit(true)
-    const result = await updateParcelaVenta(editingVenta.id, {
-      nombre_apellido: editNombre.trim(),
-      precio: parseFloat(editPrecio),
-    })
 
-    if (!result.ok) {
-      toast.error("Error al actualizar la venta", { description: result.error })
+    const parcelasNums = parseParcelasCsv(editParcelasCsv)
+    const parcelasErr = validateParcelas(parcelasNums)
+    if (parcelasErr) {
+      toast.error("Parcelas inválidas", { description: parcelasErr })
       setSavingEdit(false)
       return
     }
+
+    const supabase = createClient()
+    const { error } = await supabase.rpc("update_parcela_venta_with_parcelas", {
+      p_venta_id: editingVenta.id,
+      p_nombre_apellido: editNombre.trim(),
+      p_precio: parseFloat(editPrecio),
+      p_parcela_numeros: parcelasNums.length ? parcelasNums : null,
+    })
+    if (error) {
+      const lowered = error.message.toLowerCase()
+      const msg =
+        lowered.includes("duplicate") ||
+        lowered.includes("unique") ||
+        lowered.includes("idx_parcelas_asignaciones_parcela_numero_unique")
+          ? "Alguna de esas parcelas ya está asignada a otra venta"
+          : error.message
+      toast.error("Error al actualizar la venta", { description: msg })
+      setSavingEdit(false)
+      return
+    }
+
     setVentas((prev) =>
       prev.map((v) =>
         v.id === editingVenta.id
-          ? { ...v, nombre_apellido: editNombre.trim(), precio: parseFloat(editPrecio) }
+          ? {
+              ...v,
+              nombre_apellido: editNombre.trim(),
+              precio: parseFloat(editPrecio),
+              parcelas_asignaciones: parcelasNums.map((n) => ({ parcela_numero: n })),
+            }
           : v
       )
     )
@@ -215,7 +288,7 @@ export function ParcelasClient({ initialVentas }: { initialVentas: Venta[] }) {
             <Users className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-foreground">{totalVentas}</div>
+            <div className="text-2xl font-bold text-foreground">{totalParcelasVendidas}</div>
           </CardContent>
         </Card>
       </div>
@@ -267,6 +340,15 @@ export function ParcelasClient({ initialVentas }: { initialVentas: Venta[] }) {
                       required
                     />
                   </div>
+                </div>
+                <div className="flex flex-col gap-2">
+                  <Label htmlFor="parcela-numero">Número de parcela (1-500)</Label>
+                  <Input
+                    id="parcela-numero"
+                    placeholder="Ej: 1,2,3,4,5"
+                    value={parcelasCsv}
+                    onChange={(e) => setParcelasCsv(e.target.value)}
+                  />
                 </div>
               </div>
               <DialogFooter>
@@ -320,6 +402,15 @@ export function ParcelasClient({ initialVentas }: { initialVentas: Venta[] }) {
                       required
                     />
                   </div>
+                </div>
+                <div className="flex flex-col gap-2">
+                  <Label htmlFor="edit-parcela-numero">Números de parcelas (1-500)</Label>
+                  <Input
+                    id="edit-parcela-numero"
+                    placeholder="Ej: 1,2,3,4,5"
+                    value={editParcelasCsv}
+                    onChange={(e) => setEditParcelasCsv(e.target.value)}
+                  />
                 </div>
               </div>
               <DialogFooter>
@@ -382,6 +473,7 @@ export function ParcelasClient({ initialVentas }: { initialVentas: Venta[] }) {
                 <TableHeader>
                   <TableRow>
                     <TableHead className="w-16">N.&deg;</TableHead>
+                    <TableHead className="w-28">Parcela #</TableHead>
                     <TableHead>Nombre y Apellido</TableHead>
                     <TableHead>Precio</TableHead>
                     <TableHead>Fecha</TableHead>
@@ -398,6 +490,15 @@ export function ParcelasClient({ initialVentas }: { initialVentas: Venta[] }) {
                       <TableRow key={venta.id}>
                         <TableCell className="font-medium text-muted-foreground">
                           {String(ventas.length - index).padStart(4, "0")}
+                        </TableCell>
+                        <TableCell className="text-muted-foreground">
+                          {(() => {
+                            const list = getParcelasList(venta)
+                            if (list.length === 0) return "—"
+                            const shown = list.slice(0, 6).map((n) => String(n).padStart(3, "0")).join(", ")
+                            const more = list.length > 6 ? ` +${list.length - 6}` : ""
+                            return `${shown}${more}`
+                          })()}
                         </TableCell>
                         <TableCell className="font-medium text-foreground">{venta.nombre_apellido}</TableCell>
                         <TableCell className="text-foreground">USD {Number(venta.precio).toLocaleString("es-AR")}</TableCell>
