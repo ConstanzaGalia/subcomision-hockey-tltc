@@ -12,7 +12,7 @@ function canManageParcelas(role: UserRole): boolean {
 
 export async function updateParcelaVenta(
   ventaId: string,
-  data: { nombre_apellido: string; precio: number }
+  data: { nombre_apellido: string; precio: number; parcela_numero?: number | null }
 ): Promise<ParcelasActionResult> {
   const supabase = await createClient()
   const {
@@ -37,6 +37,7 @@ export async function updateParcelaVenta(
       .update({
         nombre_apellido: data.nombre_apellido.trim(),
         precio: data.precio,
+        parcela_numero: data.parcela_numero ?? null,
       })
       .eq("id", ventaId)
 
