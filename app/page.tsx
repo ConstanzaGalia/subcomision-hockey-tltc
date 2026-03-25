@@ -88,6 +88,10 @@ export default async function Home() {
               </div>
 
               <div className="flex flex-wrap items-center gap-3" id="sumate">
+              <div className="rounded-lg border bg-card px-4 py-3">
+                  <div className="text-xs text-muted-foreground">Valor parcelas del escudo</div>
+                  <div className="text-lg font-semibold text-foreground">500 USD</div>
+                </div>
                 <div className="rounded-lg border bg-card px-4 py-3">
                   <div className="text-xs text-muted-foreground">Valor de cada parcela</div>
                   <div className="text-lg font-semibold text-foreground">200 USD</div>
