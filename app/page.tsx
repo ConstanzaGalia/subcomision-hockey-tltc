@@ -93,11 +93,6 @@ export default async function Home() {
                 <Button variant="secondary" asChild>
                   <a href="#mapa">Ver mapa</a>
                 </Button>
-                {!isLoggedIn && (
-                  <Button variant="outline" asChild>
-                    <Link href="/auth/login">Acceder para gestionar</Link>
-                  </Button>
-                )}
               </div>
 
               <p className="text-muted-foreground leading-relaxed">

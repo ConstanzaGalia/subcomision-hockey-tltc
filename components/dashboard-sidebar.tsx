@@ -25,6 +25,11 @@ const navItems = [
     icon: LandPlot,
   },
   {
+    label: "Cuota Extraordinaria",
+    href: "/dashboard/cuota-extraordinaria",
+    icon: Banknote,
+  },
+  {
     label: "Prestamos",
     href: "/dashboard/prestamos",
     icon: Banknote,

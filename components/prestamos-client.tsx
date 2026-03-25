@@ -35,9 +35,10 @@ import {
 } from "@/components/ui/table"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Checkbox } from "@/components/ui/checkbox"
-import { Plus, DollarSign, Users, Pencil, Trash2, Banknote } from "lucide-react"
+import { Plus, DollarSign, Users, Pencil, Trash2, Banknote, FileDown } from "lucide-react"
 import { toast } from "sonner"
 import { updatePrestamo, deletePrestamo, toggleDevuelto } from "@/app/dashboard/prestamos/actions"
+import { generatePrestamoReceipt } from "@/lib/generate-receipt"
 
 interface Prestamo {
   id: string
@@ -173,6 +174,23 @@ export function PrestamosClient({ initialPrestamos }: { initialPrestamos: Presta
     setDeleting(false)
     toast.success("Préstamo eliminado")
     router.refresh()
+  }
+
+  async function handleDownloadReceipt(prestamo: Prestamo, index: number) {
+    const receiptNumber = prestamos.length - index
+    try {
+      await generatePrestamoReceipt({
+        receiptNumber,
+        nombreApellido: prestamo.nombre_apellido,
+        monto: Number(prestamo.monto),
+        fecha: prestamo.created_at,
+        moneda: "USD",
+      })
+      toast.success("Recibo descargado")
+    } catch (e) {
+      const message = e instanceof Error ? e.message : "Error al generar el PDF"
+      toast.error("Error al generar el PDF", { description: message })
+    }
   }
 
   return (
@@ -358,6 +376,7 @@ export function PrestamosClient({ initialPrestamos }: { initialPrestamos: Presta
                     <TableHead>Nombre y Apellido</TableHead>
                     <TableHead>Monto</TableHead>
                     <TableHead>Fecha</TableHead>
+                    <TableHead className="w-28 text-right">Recibo</TableHead>
                     <TableHead className="w-[10rem] text-center">Devuelto</TableHead>
                     <TableHead className="w-28 text-right">Acciones</TableHead>
                   </TableRow>
@@ -376,6 +395,17 @@ export function PrestamosClient({ initialPrestamos }: { initialPrestamos: Presta
                           USD {Number(prestamo.monto).toLocaleString("es-AR")}
                         </TableCell>
                         <TableCell className="text-muted-foreground">{formattedDate}</TableCell>
+                        <TableCell className="text-right">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleDownloadReceipt(prestamo, index)}
+                            className="text-primary hover:text-primary/80"
+                          >
+                            <FileDown className="mr-1 h-4 w-4" />
+                            PDF
+                          </Button>
+                        </TableCell>
                         <TableCell className="text-center">
                           <Checkbox
                             checked={prestamo.devuelto}

@@ -23,6 +23,7 @@ export default async function DashboardPage() {
 
   const canSeeParcelas = hasAccess(userRole, "/dashboard/parcelas")
   const canSeePrestamos = hasAccess(userRole, "/dashboard/prestamos")
+  const canSeeCuotaExtraordinaria = hasAccess(userRole, "/dashboard/cuota-extraordinaria")
   const canSeeBalance = hasAccess(userRole, "/dashboard/balance")
   const canSeeAdmin = hasAccess(userRole, "/dashboard/admin")
 
@@ -63,6 +64,14 @@ export default async function DashboardPage() {
       label: "Venta de Parcelas",
       description: "Registrar ventas y descargar recibos",
       icon: LandPlot,
+    })
+  }
+  if (canSeeCuotaExtraordinaria) {
+    sections.push({
+      href: "/dashboard/cuota-extraordinaria",
+      label: "Cuota Extraordinaria",
+      description: "Registrar cuotas y descargar recibos",
+      icon: Banknote,
     })
   }
   if (canSeePrestamos) {
