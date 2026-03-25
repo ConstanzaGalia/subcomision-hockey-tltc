@@ -84,6 +84,33 @@ function moneyLabel(moneda: "ARS" | "USD", monto: number): string {
   return `${prefix} ${Number(monto).toLocaleString("es-AR")}`
 }
 
+/** Año y mes (1–12) desde YYYY-MM-DD sin usar zona horaria. */
+function parseFechaAnioMes(fecha: string): { anio: number; mes: number } | null {
+  const part = fecha.slice(0, 10)
+  const [y, m] = part.split("-")
+  const anio = Number.parseInt(y ?? "", 10)
+  const mes = Number.parseInt(m ?? "", 10)
+  if (!Number.isFinite(anio) || !Number.isFinite(mes) || mes < 1 || mes > 12) return null
+  return { anio, mes }
+}
+
+const MESES_NOMBRE = [
+  "Enero",
+  "Febrero",
+  "Marzo",
+  "Abril",
+  "Mayo",
+  "Junio",
+  "Julio",
+  "Agosto",
+  "Septiembre",
+  "Octubre",
+  "Noviembre",
+  "Diciembre",
+] as const
+
+type FiltroPeriodoBalance = number | "anual"
+
 export function BalanceClient({
   initialMovimientos,
   ubicaciones,
@@ -119,6 +146,35 @@ export function BalanceClient({
   const [deleting, setDeleting] = useState(false)
   const [toDelete, setToDelete] = useState<BalanceMovimiento | null>(null)
 
+  const [filtroAnio, setFiltroAnio] = useState(() => new Date().getFullYear())
+  const [filtroPeriodo, setFiltroPeriodo] = useState<FiltroPeriodoBalance>(() => new Date().getMonth() + 1)
+
+  const añosDisponibles = useMemo(() => {
+    const set = new Set<number>()
+    set.add(new Date().getFullYear())
+    for (const m of movimientos) {
+      const parsed = parseFechaAnioMes(m.fecha)
+      if (parsed) set.add(parsed.anio)
+    }
+    return [...set].sort((a, b) => b - a)
+  }, [movimientos])
+
+  const opcionesAnio = useMemo(() => {
+    const set = new Set(añosDisponibles)
+    set.add(filtroAnio)
+    return [...set].sort((a, b) => b - a)
+  }, [añosDisponibles, filtroAnio])
+
+  const movimientosFiltrados = useMemo(() => {
+    return movimientos.filter((m) => {
+      const parsed = parseFechaAnioMes(m.fecha)
+      if (!parsed) return false
+      if (parsed.anio !== filtroAnio) return false
+      if (filtroPeriodo === "anual") return true
+      return parsed.mes === filtroPeriodo
+    })
+  }, [movimientos, filtroAnio, filtroPeriodo])
+
   const totals = useMemo(() => {
     const base = {
       ingresosARS: 0,
@@ -126,7 +182,7 @@ export function BalanceClient({
       gastosARS: 0,
       gastosUSD: 0,
     }
-    for (const m of movimientos) {
+    for (const m of movimientosFiltrados) {
       const value = Number(m.monto) || 0
       if (m.tipo === "INGRESO" && m.moneda === "ARS") base.ingresosARS += value
       if (m.tipo === "INGRESO" && m.moneda === "USD") base.ingresosUSD += value
@@ -134,7 +190,15 @@ export function BalanceClient({
       if (m.tipo === "GASTO" && m.moneda === "USD") base.gastosUSD += value
     }
     return base
-  }, [movimientos])
+  }, [movimientosFiltrados])
+
+  const etiquetaPeriodo = useMemo(() => {
+    if (filtroPeriodo === "anual") {
+      return `Mostrando: ${filtroAnio} (anual)`
+    }
+    const nombreMes = MESES_NOMBRE[filtroPeriodo - 1] ?? String(filtroPeriodo)
+    return `Mostrando: ${nombreMes} de ${filtroAnio}`
+  }, [filtroAnio, filtroPeriodo])
 
   async function handleCreate(e: React.FormEvent) {
     e.preventDefault()
@@ -286,6 +350,53 @@ export function BalanceClient({
 
   return (
     <div className="flex flex-col gap-6">
+      <div className="flex flex-col gap-3 rounded-lg border border-border bg-card/50 p-4">
+        <p className="text-sm font-medium text-foreground">Período</p>
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 sm:max-w-xl">
+          <div className="flex flex-col gap-2">
+            <Label htmlFor="balance-filtro-anio">Año</Label>
+            <Select
+              value={String(filtroAnio)}
+              onValueChange={(v) => setFiltroAnio(Number.parseInt(v, 10))}
+            >
+              <SelectTrigger id="balance-filtro-anio" className="w-full">
+                <SelectValue placeholder="Año" />
+              </SelectTrigger>
+              <SelectContent>
+                {opcionesAnio.map((a) => (
+                  <SelectItem key={a} value={String(a)}>
+                    {a}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="flex flex-col gap-2">
+            <Label htmlFor="balance-filtro-mes">Mes o anual</Label>
+            <Select
+              value={filtroPeriodo === "anual" ? "anual" : String(filtroPeriodo)}
+              onValueChange={(v) => {
+                if (v === "anual") setFiltroPeriodo("anual")
+                else setFiltroPeriodo(Number.parseInt(v, 10))
+              }}
+            >
+              <SelectTrigger id="balance-filtro-mes" className="w-full">
+                <SelectValue placeholder="Período" />
+              </SelectTrigger>
+              <SelectContent>
+                {MESES_NOMBRE.map((nombre, i) => (
+                  <SelectItem key={nombre} value={String(i + 1)}>
+                    {nombre}
+                  </SelectItem>
+                ))}
+                <SelectItem value="anual">Anual</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+        <p className="text-sm text-muted-foreground">{etiquetaPeriodo}</p>
+      </div>
+
       <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
@@ -566,6 +677,13 @@ export function BalanceClient({
               <p className="text-lg font-medium text-muted-foreground">No hay movimientos registrados</p>
               <p className="text-sm text-muted-foreground/70">Agregá el primero con el botón de arriba.</p>
             </div>
+          ) : movimientosFiltrados.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-16 text-center px-4">
+              <p className="text-lg font-medium text-muted-foreground">No hay movimientos en este período</p>
+              <p className="text-sm text-muted-foreground/70">
+                Cambiá el año o el mes, o elegí &quot;Anual&quot;, para ver otros movimientos.
+              </p>
+            </div>
           ) : (
             <Table>
               <TableHeader>
@@ -581,10 +699,10 @@ export function BalanceClient({
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {movimientos.map((m, index) => (
+                {movimientosFiltrados.map((m, index) => (
                   <TableRow key={m.id}>
                     <TableCell className="font-medium text-muted-foreground">
-                      {String(movimientos.length - index).padStart(4, "0")}
+                      {String(movimientosFiltrados.length - index).padStart(4, "0")}
                     </TableCell>
                     <TableCell className="font-medium text-foreground">
                       {m.tipo === "INGRESO" ? "Ingreso" : "Gasto"}
