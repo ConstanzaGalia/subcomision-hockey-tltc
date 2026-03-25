@@ -2,6 +2,7 @@ import { redirect } from "next/navigation"
 import { createClient } from "@/lib/supabase/server"
 import { hasAccess, type UserRole } from "@/lib/roles"
 import { BalanceClient, type BalanceMovimiento } from "@/components/balance-client"
+import { defaultUbicacionId, type UbicacionOption } from "@/lib/ubicaciones"
 
 export default async function BalancePage() {
   const supabase = await createClient()
@@ -23,9 +24,19 @@ export default async function BalancePage() {
     redirect("/dashboard")
   }
 
+  const { data: ubicacionesRaw } = await supabase
+    .from("ubicaciones")
+    .select("id, nombre, orden")
+    .eq("activo", true)
+    .order("orden", { ascending: true, nullsFirst: false })
+    .order("nombre", { ascending: true })
+
+  const ubicaciones: UbicacionOption[] = (ubicacionesRaw ?? []) as UbicacionOption[]
+  const ubicacionDefaultId = defaultUbicacionId(ubicaciones)
+
   const { data: movimientos } = await supabase
     .from("balance_movimientos")
-    .select("*")
+    .select("*, ubicaciones(nombre)")
     .order("fecha", { ascending: false })
     .order("created_at", { ascending: false })
 
@@ -37,7 +48,18 @@ export default async function BalancePage() {
           Registrá ingresos y gastos, separados por moneda (ARS / USD).
         </p>
       </div>
-      <BalanceClient initialMovimientos={(movimientos ?? []) as BalanceMovimiento[]} />
+      <BalanceClient
+        initialMovimientos={(movimientos ?? []).map((m) => {
+          const row = m as Record<string, unknown> & { id: string }
+          const ub = row.ubicaciones as { nombre: string } | null | undefined
+          return {
+            ...row,
+            ubicacion_nombre: ub?.nombre ?? null,
+          }
+        }) as BalanceMovimiento[]}
+        ubicaciones={ubicaciones}
+        defaultUbicacionId={ubicacionDefaultId}
+      />
     </div>
   )
 }

@@ -16,6 +16,7 @@ export type BalanceMovimientoUpdate = {
   monto: number
   descripcion: string | null
   fecha: string // YYYY-MM-DD
+  ubicacion_id: string
 }
 
 export async function updateBalanceMovimiento(
@@ -49,6 +50,7 @@ export async function updateBalanceMovimiento(
         monto: data.monto,
         descripcion: data.descripcion?.trim() ? data.descripcion.trim() : null,
         fecha: data.fecha,
+        ubicacion_id: data.ubicacion_id,
       })
       .eq("id", movimientoId)
 

@@ -2,7 +2,7 @@ import Link from "next/link"
 import { redirect } from "next/navigation"
 import { createClient } from "@/lib/supabase/server"
 import { Card, CardContent } from "@/components/ui/card"
-import { LandPlot, ShieldCheck, Banknote, Scale } from "lucide-react"
+import { LandPlot, ShieldCheck, Banknote, Scale, Package, MapPin } from "lucide-react"
 import { hasAccess, type UserRole } from "@/lib/roles"
 import { DashboardStats } from "@/components/dashboard-stats"
 
@@ -23,7 +23,10 @@ export default async function DashboardPage() {
 
   const canSeeParcelas = hasAccess(userRole, "/dashboard/parcelas")
   const canSeePrestamos = hasAccess(userRole, "/dashboard/prestamos")
+  const canSeeCuotaExtraordinaria = hasAccess(userRole, "/dashboard/cuota-extraordinaria")
+  const canSeeVentasProductos = hasAccess(userRole, "/dashboard/ventas-productos")
   const canSeeBalance = hasAccess(userRole, "/dashboard/balance")
+  const canSeeUbicaciones = hasAccess(userRole, "/dashboard/ubicaciones")
   const canSeeAdmin = hasAccess(userRole, "/dashboard/admin")
 
   let totalParcelas = 0
@@ -65,6 +68,14 @@ export default async function DashboardPage() {
       icon: LandPlot,
     })
   }
+  if (canSeeCuotaExtraordinaria) {
+    sections.push({
+      href: "/dashboard/cuota-extraordinaria",
+      label: "Cuota Extraordinaria",
+      description: "Registrar cuotas y descargar recibos",
+      icon: Banknote,
+    })
+  }
   if (canSeePrestamos) {
     sections.push({
       href: "/dashboard/prestamos",
@@ -73,12 +84,28 @@ export default async function DashboardPage() {
       icon: Banknote,
     })
   }
+  if (canSeeVentasProductos) {
+    sections.push({
+      href: "/dashboard/ventas-productos",
+      label: "Ventas y productos",
+      description: "Cargar productos y registrar ventas",
+      icon: Package,
+    })
+  }
   if (canSeeBalance) {
     sections.push({
       href: "/dashboard/balance",
       label: "Balance de cuenta",
       description: "Ingresos y gastos en ARS y USD",
       icon: Scale,
+    })
+  }
+  if (canSeeUbicaciones) {
+    sections.push({
+      href: "/dashboard/ubicaciones",
+      label: "Ubicaciones del dinero",
+      description: "Totales y detalle por persona o cuenta",
+      icon: MapPin,
     })
   }
   if (canSeeAdmin) {

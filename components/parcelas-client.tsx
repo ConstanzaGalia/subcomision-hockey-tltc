@@ -39,6 +39,8 @@ import { toast } from "sonner"
 import { generateReceipt } from "@/lib/generate-receipt"
 import { deleteParcelaVenta, toggleAnotadaEnCancha } from "@/app/dashboard/parcelas/actions"
 import { Checkbox } from "@/components/ui/checkbox"
+import { UbicacionSelect } from "@/components/ubicacion-select"
+import type { UbicacionOption } from "@/lib/ubicaciones"
 
 type ParcelaAsignacion = { parcela_numero: number }
 
@@ -48,22 +50,34 @@ interface Venta {
   precio: number
   created_at: string
   user_id: string
+  ubicacion_id: string
+  ubicacion_nombre?: string | null
   anotada_en_cancha?: boolean
   parcelas_asignaciones?: ParcelaAsignacion[] | null
 }
 
-export function ParcelasClient({ initialVentas }: { initialVentas: Venta[] }) {
+export function ParcelasClient({
+  initialVentas,
+  ubicaciones,
+  defaultUbicacionId,
+}: {
+  initialVentas: Venta[]
+  ubicaciones: UbicacionOption[]
+  defaultUbicacionId: string
+}) {
   const [ventas, setVentas] = useState<Venta[]>(initialVentas)
   const [open, setOpen] = useState(false)
   const [nombre, setNombre] = useState("")
   const [precio, setPrecio] = useState("")
   const [parcelasCsv, setParcelasCsv] = useState("")
+  const [ubicacionId, setUbicacionId] = useState(defaultUbicacionId)
   const [loading, setLoading] = useState(false)
   const [openEdit, setOpenEdit] = useState(false)
   const [editingVenta, setEditingVenta] = useState<Venta | null>(null)
   const [editNombre, setEditNombre] = useState("")
   const [editPrecio, setEditPrecio] = useState("")
   const [editParcelasCsv, setEditParcelasCsv] = useState("")
+  const [editUbicacionId, setEditUbicacionId] = useState("")
   const [savingEdit, setSavingEdit] = useState(false)
   const [openDelete, setOpenDelete] = useState(false)
   const [ventaToDelete, setVentaToDelete] = useState<Venta | null>(null)
@@ -139,10 +153,17 @@ export function ParcelasClient({ initialVentas }: { initialVentas: Venta[] }) {
       return
     }
 
+    if (!ubicacionId) {
+      toast.error("Seleccioná una ubicación")
+      setLoading(false)
+      return
+    }
+
     const { data, error } = await supabase.rpc("create_parcela_venta_with_parcelas", {
       p_nombre_apellido: nombre.trim(),
       p_precio: parseFloat(precio),
       p_parcela_numeros: parcelasNums.length ? parcelasNums : null,
+      p_ubicacion_id: ubicacionId,
     })
 
     if (error) {
@@ -159,14 +180,17 @@ export function ParcelasClient({ initialVentas }: { initialVentas: Venta[] }) {
     }
 
     const ventaRow = data as unknown as Venta
+    const ubNombre = ubicaciones.find((u) => u.id === ubicacionId)?.nombre ?? null
     const enriched: Venta = {
       ...ventaRow,
+      ubicacion_nombre: ubNombre,
       parcelas_asignaciones: parcelasNums.map((n) => ({ parcela_numero: n })),
     }
     setVentas([enriched, ...ventas])
     setNombre("")
     setPrecio("")
     setParcelasCsv("")
+    setUbicacionId(defaultUbicacionId)
     setOpen(false)
     setLoading(false)
     toast.success("Venta registrada exitosamente")
@@ -189,6 +213,7 @@ export function ParcelasClient({ initialVentas }: { initialVentas: Venta[] }) {
     setEditNombre(venta.nombre_apellido)
     setEditPrecio(String(venta.precio))
     setEditParcelasCsv(getParcelasList(venta).join(","))
+    setEditUbicacionId(venta.ubicacion_id || defaultUbicacionId)
     setOpenEdit(true)
   }
 
@@ -205,12 +230,19 @@ export function ParcelasClient({ initialVentas }: { initialVentas: Venta[] }) {
       return
     }
 
+    if (!editUbicacionId) {
+      toast.error("Seleccioná una ubicación")
+      setSavingEdit(false)
+      return
+    }
+
     const supabase = createClient()
     const { error } = await supabase.rpc("update_parcela_venta_with_parcelas", {
       p_venta_id: editingVenta.id,
       p_nombre_apellido: editNombre.trim(),
       p_precio: parseFloat(editPrecio),
       p_parcela_numeros: parcelasNums.length ? parcelasNums : null,
+      p_ubicacion_id: editUbicacionId,
     })
     if (error) {
       const lowered = error.message.toLowerCase()
@@ -225,6 +257,7 @@ export function ParcelasClient({ initialVentas }: { initialVentas: Venta[] }) {
       return
     }
 
+    const ubNombre = ubicaciones.find((u) => u.id === editUbicacionId)?.nombre ?? null
     setVentas((prev) =>
       prev.map((v) =>
         v.id === editingVenta.id
@@ -232,6 +265,8 @@ export function ParcelasClient({ initialVentas }: { initialVentas: Venta[] }) {
               ...v,
               nombre_apellido: editNombre.trim(),
               precio: parseFloat(editPrecio),
+              ubicacion_id: editUbicacionId,
+              ubicacion_nombre: ubNombre,
               parcelas_asignaciones: parcelasNums.map((n) => ({ parcela_numero: n })),
             }
           : v
@@ -296,7 +331,13 @@ export function ParcelasClient({ initialVentas }: { initialVentas: Venta[] }) {
       {/* Action Bar */}
       <div className="flex items-center justify-between">
         <h2 className="text-lg font-semibold text-foreground">Listado de Ventas</h2>
-        <Dialog open={open} onOpenChange={setOpen}>
+        <Dialog
+          open={open}
+          onOpenChange={(o) => {
+            setOpen(o)
+            if (o) setUbicacionId(defaultUbicacionId)
+          }}
+        >
           <DialogTrigger asChild>
             <Button>
               <Plus className="mr-2 h-4 w-4" />
@@ -350,6 +391,12 @@ export function ParcelasClient({ initialVentas }: { initialVentas: Venta[] }) {
                     onChange={(e) => setParcelasCsv(e.target.value)}
                   />
                 </div>
+                <UbicacionSelect
+                  id="ubicacion-parcela"
+                  value={ubicacionId}
+                  onValueChange={setUbicacionId}
+                  ubicaciones={ubicaciones}
+                />
               </div>
               <DialogFooter>
                 <Button type="button" variant="outline" onClick={() => setOpen(false)}>
@@ -412,6 +459,12 @@ export function ParcelasClient({ initialVentas }: { initialVentas: Venta[] }) {
                     onChange={(e) => setEditParcelasCsv(e.target.value)}
                   />
                 </div>
+                <UbicacionSelect
+                  id="ubicacion-parcela-edit"
+                  value={editUbicacionId}
+                  onValueChange={setEditUbicacionId}
+                  ubicaciones={ubicaciones}
+                />
               </div>
               <DialogFooter>
                 <Button type="button" variant="outline" onClick={() => setOpenEdit(false)}>
@@ -475,6 +528,7 @@ export function ParcelasClient({ initialVentas }: { initialVentas: Venta[] }) {
                     <TableHead className="w-16">N.&deg;</TableHead>
                     <TableHead className="w-28">Parcela #</TableHead>
                     <TableHead>Nombre y Apellido</TableHead>
+                    <TableHead>Ubicación</TableHead>
                     <TableHead>Precio</TableHead>
                     <TableHead>Fecha</TableHead>
                     <TableHead className="w-[10rem] text-center">Anotada en cancha</TableHead>
@@ -501,6 +555,9 @@ export function ParcelasClient({ initialVentas }: { initialVentas: Venta[] }) {
                           })()}
                         </TableCell>
                         <TableCell className="font-medium text-foreground">{venta.nombre_apellido}</TableCell>
+                        <TableCell className="text-muted-foreground text-sm">
+                          {venta.ubicacion_nombre ?? "—"}
+                        </TableCell>
                         <TableCell className="text-foreground">USD {Number(venta.precio).toLocaleString("es-AR")}</TableCell>
                         <TableCell className="text-muted-foreground">{formattedDate}</TableCell>
                         <TableCell className="text-center">
