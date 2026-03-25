@@ -2,7 +2,7 @@ import Link from "next/link"
 import { redirect } from "next/navigation"
 import { createClient } from "@/lib/supabase/server"
 import { Card, CardContent } from "@/components/ui/card"
-import { LandPlot, ShieldCheck, Banknote, Scale } from "lucide-react"
+import { LandPlot, ShieldCheck, Banknote, Scale, Package } from "lucide-react"
 import { hasAccess, type UserRole } from "@/lib/roles"
 import { DashboardStats } from "@/components/dashboard-stats"
 
@@ -24,6 +24,7 @@ export default async function DashboardPage() {
   const canSeeParcelas = hasAccess(userRole, "/dashboard/parcelas")
   const canSeePrestamos = hasAccess(userRole, "/dashboard/prestamos")
   const canSeeCuotaExtraordinaria = hasAccess(userRole, "/dashboard/cuota-extraordinaria")
+  const canSeeVentasProductos = hasAccess(userRole, "/dashboard/ventas-productos")
   const canSeeBalance = hasAccess(userRole, "/dashboard/balance")
   const canSeeAdmin = hasAccess(userRole, "/dashboard/admin")
 
@@ -80,6 +81,14 @@ export default async function DashboardPage() {
       label: "Prestamos",
       description: "Gestion de prestamos",
       icon: Banknote,
+    })
+  }
+  if (canSeeVentasProductos) {
+    sections.push({
+      href: "/dashboard/ventas-productos",
+      label: "Ventas y productos",
+      description: "Cargar productos y registrar ventas",
+      icon: Package,
     })
   }
   if (canSeeBalance) {
