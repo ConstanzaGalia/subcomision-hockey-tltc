@@ -49,6 +49,8 @@ import {
   markReciboGenerated,
   updateCuotaExtraordinaria,
 } from "@/app/dashboard/cuota-extraordinaria/actions"
+import { UbicacionSelect } from "@/components/ubicacion-select"
+import type { UbicacionOption } from "@/lib/ubicaciones"
 
 type Moneda = "USD" | "ARS"
 type MetodoPago = "EFECTIVO" | "TRANSFERENCIA"
@@ -62,6 +64,8 @@ export type CuotaExtraordinariaRow = {
   fecha: string // YYYY-MM-DD
   created_at: string
   user_id: string
+  ubicacion_id: string
+  ubicacion_nombre?: string | null
   recibo_generado_por_nombre_apellido?: string | null
   recibo_generado_por?: string | null
 }
@@ -85,7 +89,15 @@ function moneyLabel(moneda: Moneda, monto: number): string {
   return `${prefix} ${Number(monto).toLocaleString("es-AR")}`
 }
 
-export function CuotaExtraordinariaClient({ initialCuotas }: { initialCuotas: CuotaExtraordinariaRow[] }) {
+export function CuotaExtraordinariaClient({
+  initialCuotas,
+  ubicaciones,
+  defaultUbicacionId,
+}: {
+  initialCuotas: CuotaExtraordinariaRow[]
+  ubicaciones: UbicacionOption[]
+  defaultUbicacionId: string
+}) {
   const [cuotas, setCuotas] = useState<CuotaExtraordinariaRow[]>(initialCuotas)
   const router = useRouter()
 
@@ -95,6 +107,7 @@ export function CuotaExtraordinariaClient({ initialCuotas }: { initialCuotas: Cu
   const [metodoPago, setMetodoPago] = useState<MetodoPago>("EFECTIVO")
   const [monto, setMonto] = useState("")
   const [fecha, setFecha] = useState(todayISODate())
+  const [ubicacionId, setUbicacionId] = useState(defaultUbicacionId)
   const [creating, setCreating] = useState(false)
 
   const [openEdit, setOpenEdit] = useState(false)
@@ -104,6 +117,7 @@ export function CuotaExtraordinariaClient({ initialCuotas }: { initialCuotas: Cu
   const [editMetodoPago, setEditMetodoPago] = useState<MetodoPago>("EFECTIVO")
   const [editMonto, setEditMonto] = useState("")
   const [editFecha, setEditFecha] = useState(todayISODate())
+  const [editUbicacionId, setEditUbicacionId] = useState("")
   const [savingEdit, setSavingEdit] = useState(false)
 
   const [openDelete, setOpenDelete] = useState(false)
@@ -146,6 +160,12 @@ export function CuotaExtraordinariaClient({ initialCuotas }: { initialCuotas: Cu
       return
     }
 
+    if (!ubicacionId) {
+      toast.error("Seleccioná una ubicación")
+      setCreating(false)
+      return
+    }
+
     const { data, error } = await supabase
       .from("cuota_extraordinaria")
       .insert({
@@ -155,6 +175,7 @@ export function CuotaExtraordinariaClient({ initialCuotas }: { initialCuotas: Cu
         monto: montoNum,
         fecha,
         user_id: user.id,
+        ubicacion_id: ubicacionId,
       })
       .select()
       .single()
@@ -165,9 +186,11 @@ export function CuotaExtraordinariaClient({ initialCuotas }: { initialCuotas: Cu
       return
     }
 
+    const ubNombre = ubicaciones.find((u) => u.id === ubicacionId)?.nombre ?? null
     setCuotas((prev) => [
       {
         ...(data as CuotaExtraordinariaRow),
+        ubicacion_nombre: ubNombre,
         recibo_generado_por_nombre_apellido: null,
       },
       ...prev,
@@ -179,6 +202,7 @@ export function CuotaExtraordinariaClient({ initialCuotas }: { initialCuotas: Cu
     setMetodoPago("EFECTIVO")
     setMonto("")
     setFecha(todayISODate())
+    setUbicacionId(defaultUbicacionId)
     setCreating(false)
     toast.success("Cuota registrada")
     router.refresh()
@@ -191,6 +215,7 @@ export function CuotaExtraordinariaClient({ initialCuotas }: { initialCuotas: Cu
     setEditMetodoPago(c.metodo_pago)
     setEditMonto(String(c.monto))
     setEditFecha(c.fecha)
+    setEditUbicacionId(c.ubicacion_id || defaultUbicacionId)
     setOpenEdit(true)
   }
 
@@ -208,6 +233,11 @@ export function CuotaExtraordinariaClient({ initialCuotas }: { initialCuotas: Cu
       return
     }
 
+    if (!editUbicacionId) {
+      toast.error("Seleccioná una ubicación")
+      return
+    }
+
     setSavingEdit(true)
     const result = await updateCuotaExtraordinaria(editingCuota.id, {
       nombre_apellido: editNombre.trim(),
@@ -215,6 +245,7 @@ export function CuotaExtraordinariaClient({ initialCuotas }: { initialCuotas: Cu
       metodo_pago: editMetodoPago,
       monto: montoNum,
       fecha: editFecha,
+      ubicacion_id: editUbicacionId,
     })
 
     if (!result.ok) {
@@ -223,6 +254,7 @@ export function CuotaExtraordinariaClient({ initialCuotas }: { initialCuotas: Cu
       return
     }
 
+    const ubNombre = ubicaciones.find((u) => u.id === editUbicacionId)?.nombre ?? null
     setCuotas((prev) =>
       prev.map((x) =>
         x.id === editingCuota.id
@@ -233,6 +265,8 @@ export function CuotaExtraordinariaClient({ initialCuotas }: { initialCuotas: Cu
               metodo_pago: editMetodoPago,
               monto: montoNum,
               fecha: editFecha,
+              ubicacion_id: editUbicacionId,
+              ubicacion_nombre: ubNombre,
             }
           : x,
       ),
@@ -328,7 +362,13 @@ export function CuotaExtraordinariaClient({ initialCuotas }: { initialCuotas: Cu
       <div className="flex items-center justify-between">
         <h2 className="text-lg font-semibold text-foreground">Listado de Cuotas</h2>
 
-        <Dialog open={openCreate} onOpenChange={setOpenCreate}>
+        <Dialog
+          open={openCreate}
+          onOpenChange={(o) => {
+            setOpenCreate(o)
+            if (o) setUbicacionId(defaultUbicacionId)
+          }}
+        >
           <DialogTrigger asChild>
             <Button>
               <Plus className="mr-2 h-4 w-4" />
@@ -410,6 +450,12 @@ export function CuotaExtraordinariaClient({ initialCuotas }: { initialCuotas: Cu
                   <Label htmlFor="fecha">Fecha</Label>
                   <Input id="fecha" type="date" value={fecha} onChange={(e) => setFecha(e.target.value)} required />
                 </div>
+                <UbicacionSelect
+                  id="ubicacion-cuota"
+                  value={ubicacionId}
+                  onValueChange={setUbicacionId}
+                  ubicaciones={ubicaciones}
+                />
               </div>
               <DialogFooter>
                 <Button type="button" variant="outline" onClick={() => setOpenCreate(false)}>
@@ -438,6 +484,7 @@ export function CuotaExtraordinariaClient({ initialCuotas }: { initialCuotas: Cu
                   <TableHeader>
                     <TableRow>
                       <TableHead>Nombre y Apellido</TableHead>
+                      <TableHead>Ubicación</TableHead>
                       <TableHead>Monto</TableHead>
                       <TableHead>Fecha</TableHead>
                     <TableHead>Método de pago</TableHead>
@@ -449,6 +496,9 @@ export function CuotaExtraordinariaClient({ initialCuotas }: { initialCuotas: Cu
                     {cuotas.map((cuota, index) => (
                       <TableRow key={cuota.id}>
                         <TableCell className="font-medium text-foreground">{cuota.nombre_apellido}</TableCell>
+                        <TableCell className="text-muted-foreground text-sm">
+                          {cuota.ubicacion_nombre ?? "—"}
+                        </TableCell>
                         <TableCell className="text-foreground">{moneyLabel(cuota.moneda, Number(cuota.monto))}</TableCell>
                         <TableCell className="text-muted-foreground">{formatFecha(cuota.fecha)}</TableCell>
                         <TableCell className="text-muted-foreground">
@@ -569,6 +619,12 @@ export function CuotaExtraordinariaClient({ initialCuotas }: { initialCuotas: Cu
                 <Label htmlFor="edit-fecha">Fecha</Label>
                 <Input id="edit-fecha" type="date" value={editFecha} onChange={(e) => setEditFecha(e.target.value)} required />
               </div>
+              <UbicacionSelect
+                id="ubicacion-cuota-edit"
+                value={editUbicacionId}
+                onValueChange={setEditUbicacionId}
+                ubicaciones={ubicaciones}
+              />
             </div>
             <DialogFooter>
               <Button type="button" variant="outline" onClick={() => setOpenEdit(false)}>

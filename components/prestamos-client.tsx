@@ -39,6 +39,8 @@ import { Plus, DollarSign, Users, Pencil, Trash2, Banknote, FileDown } from "luc
 import { toast } from "sonner"
 import { updatePrestamo, deletePrestamo, toggleDevuelto } from "@/app/dashboard/prestamos/actions"
 import { generatePrestamoReceipt } from "@/lib/generate-receipt"
+import { UbicacionSelect } from "@/components/ubicacion-select"
+import type { UbicacionOption } from "@/lib/ubicaciones"
 
 interface Prestamo {
   id: string
@@ -47,18 +49,30 @@ interface Prestamo {
   devuelto: boolean
   created_at: string
   user_id: string
+  ubicacion_id: string
+  ubicacion_nombre?: string | null
 }
 
-export function PrestamosClient({ initialPrestamos }: { initialPrestamos: Prestamo[] }) {
+export function PrestamosClient({
+  initialPrestamos,
+  ubicaciones,
+  defaultUbicacionId,
+}: {
+  initialPrestamos: Prestamo[]
+  ubicaciones: UbicacionOption[]
+  defaultUbicacionId: string
+}) {
   const [prestamos, setPrestamos] = useState<Prestamo[]>(initialPrestamos)
   const [open, setOpen] = useState(false)
   const [nombre, setNombre] = useState("")
   const [monto, setMonto] = useState("")
+  const [ubicacionId, setUbicacionId] = useState(defaultUbicacionId)
   const [loading, setLoading] = useState(false)
   const [openEdit, setOpenEdit] = useState(false)
   const [editingPrestamo, setEditingPrestamo] = useState<Prestamo | null>(null)
   const [editNombre, setEditNombre] = useState("")
   const [editMonto, setEditMonto] = useState("")
+  const [editUbicacionId, setEditUbicacionId] = useState("")
   const [savingEdit, setSavingEdit] = useState(false)
   const [openDelete, setOpenDelete] = useState(false)
   const [prestamoToDelete, setPrestamoToDelete] = useState<Prestamo | null>(null)
@@ -81,12 +95,18 @@ export function PrestamosClient({ initialPrestamos }: { initialPrestamos: Presta
       setLoading(false)
       return
     }
+    if (!ubicacionId) {
+      toast.error("Seleccioná una ubicación")
+      setLoading(false)
+      return
+    }
     const { data, error } = await supabase
       .from("prestamos")
       .insert({
         nombre_apellido: nombre.trim(),
         monto: parseFloat(monto),
         user_id: user.id,
+        ubicacion_id: ubicacionId,
       })
       .select()
       .single()
@@ -95,9 +115,11 @@ export function PrestamosClient({ initialPrestamos }: { initialPrestamos: Presta
       setLoading(false)
       return
     }
-    setPrestamos([data, ...prestamos])
+    const ubNombre = ubicaciones.find((u) => u.id === ubicacionId)?.nombre ?? null
+    setPrestamos([{ ...(data as Prestamo), ubicacion_nombre: ubNombre }, ...prestamos])
     setNombre("")
     setMonto("")
+    setUbicacionId(defaultUbicacionId)
     setOpen(false)
     setLoading(false)
     toast.success("Préstamo registrado")
@@ -122,26 +144,39 @@ export function PrestamosClient({ initialPrestamos }: { initialPrestamos: Presta
     setEditingPrestamo(p)
     setEditNombre(p.nombre_apellido)
     setEditMonto(String(p.monto))
+    setEditUbicacionId(p.ubicacion_id || defaultUbicacionId)
     setOpenEdit(true)
   }
 
   async function handleSaveEdit(e: React.FormEvent) {
     e.preventDefault()
     if (!editingPrestamo) return
+    if (!editUbicacionId) {
+      toast.error("Seleccioná una ubicación")
+      return
+    }
     setSavingEdit(true)
     const result = await updatePrestamo(editingPrestamo.id, {
       nombre_apellido: editNombre.trim(),
       monto: parseFloat(editMonto),
+      ubicacion_id: editUbicacionId,
     })
     if (!result.ok) {
       toast.error("Error al actualizar", { description: result.error })
       setSavingEdit(false)
       return
     }
+    const ubNombre = ubicaciones.find((u) => u.id === editUbicacionId)?.nombre ?? null
     setPrestamos((prev) =>
       prev.map((p) =>
         p.id === editingPrestamo.id
-          ? { ...p, nombre_apellido: editNombre.trim(), monto: parseFloat(editMonto) }
+          ? {
+              ...p,
+              nombre_apellido: editNombre.trim(),
+              monto: parseFloat(editMonto),
+              ubicacion_id: editUbicacionId,
+              ubicacion_nombre: ubNombre,
+            }
           : p
       )
     )
@@ -220,7 +255,13 @@ export function PrestamosClient({ initialPrestamos }: { initialPrestamos: Presta
 
       <div className="flex items-center justify-between">
         <h2 className="text-lg font-semibold text-foreground">Listado de préstamos</h2>
-        <Dialog open={open} onOpenChange={setOpen}>
+        <Dialog
+          open={open}
+          onOpenChange={(o) => {
+            setOpen(o)
+            if (o) setUbicacionId(defaultUbicacionId)
+          }}
+        >
           <DialogTrigger asChild>
             <Button>
               <Plus className="mr-2 h-4 w-4" />
@@ -265,6 +306,12 @@ export function PrestamosClient({ initialPrestamos }: { initialPrestamos: Presta
                     />
                   </div>
                 </div>
+                <UbicacionSelect
+                  id="ubicacion-prestamo"
+                  value={ubicacionId}
+                  onValueChange={setUbicacionId}
+                  ubicaciones={ubicaciones}
+                />
               </div>
               <DialogFooter>
                 <Button type="button" variant="outline" onClick={() => setOpen(false)}>
@@ -314,6 +361,12 @@ export function PrestamosClient({ initialPrestamos }: { initialPrestamos: Presta
                     />
                   </div>
                 </div>
+                <UbicacionSelect
+                  id="ubicacion-prestamo-edit"
+                  value={editUbicacionId}
+                  onValueChange={setEditUbicacionId}
+                  ubicaciones={ubicaciones}
+                />
               </div>
               <DialogFooter>
                 <Button type="button" variant="outline" onClick={() => setOpenEdit(false)}>
@@ -374,6 +427,7 @@ export function PrestamosClient({ initialPrestamos }: { initialPrestamos: Presta
                   <TableRow>
                     <TableHead className="w-16">N.&deg;</TableHead>
                     <TableHead>Nombre y Apellido</TableHead>
+                    <TableHead>Ubicación</TableHead>
                     <TableHead>Monto</TableHead>
                     <TableHead>Fecha</TableHead>
                     <TableHead className="w-28 text-right">Recibo</TableHead>
@@ -391,6 +445,9 @@ export function PrestamosClient({ initialPrestamos }: { initialPrestamos: Presta
                           {String(prestamos.length - index).padStart(4, "0")}
                         </TableCell>
                         <TableCell className="font-medium text-foreground">{prestamo.nombre_apellido}</TableCell>
+                        <TableCell className="text-muted-foreground text-sm">
+                          {prestamo.ubicacion_nombre ?? "—"}
+                        </TableCell>
                         <TableCell className="text-foreground">
                           USD {Number(prestamo.monto).toLocaleString("es-AR")}
                         </TableCell>

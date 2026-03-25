@@ -18,6 +18,7 @@ export async function updateCuotaExtraordinaria(
     metodo_pago: "EFECTIVO" | "TRANSFERENCIA"
     monto: number
     fecha: string
+    ubicacion_id: string
   }
 ): Promise<CuotaExtraordinariaActionResult> {
   const supabase = await createClient()
@@ -48,6 +49,7 @@ export async function updateCuotaExtraordinaria(
         metodo_pago: data.metodo_pago,
         monto: data.monto,
         fecha: data.fecha,
+        ubicacion_id: data.ubicacion_id,
       })
       .eq("id", cuotaId)
 

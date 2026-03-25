@@ -2,7 +2,7 @@ import Link from "next/link"
 import { redirect } from "next/navigation"
 import { createClient } from "@/lib/supabase/server"
 import { Card, CardContent } from "@/components/ui/card"
-import { LandPlot, ShieldCheck, Banknote, Scale, Package } from "lucide-react"
+import { LandPlot, ShieldCheck, Banknote, Scale, Package, MapPin } from "lucide-react"
 import { hasAccess, type UserRole } from "@/lib/roles"
 import { DashboardStats } from "@/components/dashboard-stats"
 
@@ -26,6 +26,7 @@ export default async function DashboardPage() {
   const canSeeCuotaExtraordinaria = hasAccess(userRole, "/dashboard/cuota-extraordinaria")
   const canSeeVentasProductos = hasAccess(userRole, "/dashboard/ventas-productos")
   const canSeeBalance = hasAccess(userRole, "/dashboard/balance")
+  const canSeeUbicaciones = hasAccess(userRole, "/dashboard/ubicaciones")
   const canSeeAdmin = hasAccess(userRole, "/dashboard/admin")
 
   let totalParcelas = 0
@@ -97,6 +98,14 @@ export default async function DashboardPage() {
       label: "Balance de cuenta",
       description: "Ingresos y gastos en ARS y USD",
       icon: Scale,
+    })
+  }
+  if (canSeeUbicaciones) {
+    sections.push({
+      href: "/dashboard/ubicaciones",
+      label: "Ubicaciones del dinero",
+      description: "Totales y detalle por persona o cuenta",
+      icon: MapPin,
     })
   }
   if (canSeeAdmin) {

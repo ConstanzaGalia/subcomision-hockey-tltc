@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server"
 import type { UserRole } from "@/lib/roles"
 import { hasAccess } from "@/lib/roles"
 import { VentasProductosClient, type VentaProductoRow } from "@/components/ventas-productos-client"
+import { defaultUbicacionId, type UbicacionOption } from "@/lib/ubicaciones"
 
 export default async function VentasProductosPage() {
   const supabase = await createClient()
@@ -34,9 +35,19 @@ export default async function VentasProductosPage() {
     console.error("Error cargando productos:", prodError.message)
   }
 
+  const { data: ubicacionesRaw } = await supabase
+    .from("ubicaciones")
+    .select("id, nombre, orden")
+    .eq("activo", true)
+    .order("orden", { ascending: true, nullsFirst: false })
+    .order("nombre", { ascending: true })
+
+  const ubicaciones: UbicacionOption[] = (ubicacionesRaw ?? []) as UbicacionOption[]
+  const ubicacionDefaultId = defaultUbicacionId(ubicaciones)
+
   const { data: ventasRaw, error: ventasError } = await supabase
     .from("producto_ventas")
-    .select("*, productos(nombre, moneda)")
+    .select("*, productos(nombre, moneda), ubicaciones(nombre)")
     .order("fecha", { ascending: false })
     .order("created_at", { ascending: false })
 
@@ -54,7 +65,9 @@ export default async function VentasProductosPage() {
     metodo_pago?: "EFECTIVO" | "TRANSFERENCIA"
     user_id: string
     created_at: string
+    ubicacion_id: string
     productos: { nombre: string; moneda: string } | null
+    ubicaciones?: { nombre: string } | null
   }
 
   const ventasEnriquecidas: VentaProductoRow[] = ((ventasRaw ?? []) as VentaRow[]).map((v) => ({
@@ -67,6 +80,8 @@ export default async function VentasProductosPage() {
     metodo_pago: v.metodo_pago ?? "EFECTIVO",
     user_id: v.user_id,
     created_at: v.created_at,
+    ubicacion_id: v.ubicacion_id,
+    ubicacion_nombre: v.ubicaciones?.nombre ?? null,
     producto_nombre: v.productos?.nombre ?? "—",
     producto_moneda: (v.productos?.moneda as VentaProductoRow["producto_moneda"]) ?? null,
   }))
@@ -79,7 +94,12 @@ export default async function VentasProductosPage() {
           Cargá el catálogo de productos y registrá cada venta con cantidad y fecha.
         </p>
       </div>
-      <VentasProductosClient initialProductos={productos ?? []} initialVentas={ventasEnriquecidas} />
+      <VentasProductosClient
+        initialProductos={productos ?? []}
+        initialVentas={ventasEnriquecidas}
+        ubicaciones={ubicaciones}
+        defaultUbicacionId={ubicacionDefaultId}
+      />
     </div>
   )
 }

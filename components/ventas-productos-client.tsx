@@ -51,6 +51,8 @@ import {
   updateProducto,
   updateProductoVenta,
 } from "@/app/dashboard/ventas-productos/actions"
+import { UbicacionSelect } from "@/components/ubicacion-select"
+import type { UbicacionOption } from "@/lib/ubicaciones"
 
 type Moneda = "ARS" | "USD"
 type MetodoPago = "EFECTIVO" | "TRANSFERENCIA"
@@ -76,6 +78,8 @@ export type VentaProductoRow = {
   metodo_pago: MetodoPago
   user_id: string
   created_at: string
+  ubicacion_id: string
+  ubicacion_nombre?: string | null
   producto_nombre: string
   producto_moneda: Moneda | null
 }
@@ -110,9 +114,13 @@ function todayISODate(): string {
 export function VentasProductosClient({
   initialProductos,
   initialVentas,
+  ubicaciones,
+  defaultUbicacionId,
 }: {
   initialProductos: ProductoRow[]
   initialVentas: VentaProductoRow[]
+  ubicaciones: UbicacionOption[]
+  defaultUbicacionId: string
 }) {
   const [productos, setProductos] = useState<ProductoRow[]>(initialProductos)
   const [ventas, setVentas] = useState<VentaProductoRow[]>(initialVentas)
@@ -150,6 +158,7 @@ export function VentasProductosClient({
   const [vPrecioUnit, setVPrecioUnit] = useState("")
   const [vFecha, setVFecha] = useState(todayISODate())
   const [vMetodoPago, setVMetodoPago] = useState<MetodoPago>("EFECTIVO")
+  const [vUbicacionId, setVUbicacionId] = useState(defaultUbicacionId)
   const [creatingVenta, setCreatingVenta] = useState(false)
 
   // --- Ventas: editar ---
@@ -160,6 +169,7 @@ export function VentasProductosClient({
   const [evPrecioUnit, setEvPrecioUnit] = useState("")
   const [evFecha, setEvFecha] = useState(todayISODate())
   const [evMetodoPago, setEvMetodoPago] = useState<MetodoPago>("EFECTIVO")
+  const [evUbicacionId, setEvUbicacionId] = useState("")
   const [savingVenta, setSavingVenta] = useState(false)
 
   const [openDelVenta, setOpenDelVenta] = useState(false)
@@ -320,6 +330,7 @@ export function VentasProductosClient({
       setVCantidad("1")
       setVFecha(todayISODate())
       setVMetodoPago("EFECTIVO")
+      setVUbicacionId(defaultUbicacionId)
     }
   }
 
@@ -358,6 +369,12 @@ export function VentasProductosClient({
       return
     }
 
+    if (!vUbicacionId) {
+      toast.error("Seleccioná una ubicación")
+      setCreatingVenta(false)
+      return
+    }
+
     const { data, error } = await supabase
       .from("producto_ventas")
       .insert({
@@ -368,6 +385,7 @@ export function VentasProductosClient({
         fecha: vFecha,
         metodo_pago: vMetodoPago,
         user_id: user.id,
+        ubicacion_id: vUbicacionId,
       })
       .select()
       .single()
@@ -379,6 +397,7 @@ export function VentasProductosClient({
     }
 
     const prod = productos.find((x) => x.id === vProductoId)
+    const ubNombre = ubicaciones.find((u) => u.id === vUbicacionId)?.nombre ?? null
     const d = data as {
       id: string
       producto_id: string
@@ -389,6 +408,7 @@ export function VentasProductosClient({
       metodo_pago: MetodoPago
       user_id: string
       created_at: string
+      ubicacion_id: string
     }
     const row: VentaProductoRow = {
       id: d.id,
@@ -400,6 +420,8 @@ export function VentasProductosClient({
       metodo_pago: d.metodo_pago,
       user_id: d.user_id,
       created_at: d.created_at,
+      ubicacion_id: d.ubicacion_id,
+      ubicacion_nombre: ubNombre,
       producto_nombre: prod?.nombre ?? "—",
       producto_moneda: prod?.moneda ?? null,
     }
@@ -417,6 +439,7 @@ export function VentasProductosClient({
     setEvPrecioUnit(String(v.precio_unitario))
     setEvFecha(v.fecha)
     setEvMetodoPago(v.metodo_pago)
+    setEvUbicacionId(v.ubicacion_id || defaultUbicacionId)
     setOpenEditVenta(true)
   }
 
@@ -439,6 +462,11 @@ export function VentasProductosClient({
     }
     const total = roundMoney(cantidad * precioUnit)
 
+    if (!evUbicacionId) {
+      toast.error("Seleccioná una ubicación")
+      return
+    }
+
     setSavingVenta(true)
     const result = await updateProductoVenta(editingVenta.id, {
       producto_id: evProductoId,
@@ -447,6 +475,7 @@ export function VentasProductosClient({
       total,
       fecha: evFecha,
       metodo_pago: evMetodoPago,
+      ubicacion_id: evUbicacionId,
     })
     if (!result.ok) {
       toast.error("Error al actualizar", { description: result.error })
@@ -455,6 +484,7 @@ export function VentasProductosClient({
     }
 
     const prod = productos.find((x) => x.id === evProductoId)
+    const ubNombre = ubicaciones.find((u) => u.id === evUbicacionId)?.nombre ?? null
     setVentas((prev) =>
       prev.map((x) =>
         x.id === editingVenta.id
@@ -466,6 +496,8 @@ export function VentasProductosClient({
               total,
               fecha: evFecha,
               metodo_pago: evMetodoPago,
+              ubicacion_id: evUbicacionId,
+              ubicacion_nombre: ubNombre,
               producto_nombre: prod?.nombre ?? x.producto_nombre,
               producto_moneda: prod?.moneda ?? x.producto_moneda,
             }
@@ -814,6 +846,12 @@ export function VentasProductosClient({
                       </SelectContent>
                     </Select>
                   </div>
+                  <UbicacionSelect
+                    id="ubicacion-venta-prod"
+                    value={vUbicacionId}
+                    onValueChange={setVUbicacionId}
+                    ubicaciones={ubicaciones}
+                  />
                   {ventaPreviewTotal != null && vProductoId && (
                     <p className="text-sm text-muted-foreground">
                       Total:{" "}
@@ -857,6 +895,7 @@ export function VentasProductosClient({
                       <TableHead>P. unit.</TableHead>
                       <TableHead>Total</TableHead>
                       <TableHead>Medio de pago</TableHead>
+                      <TableHead>Ubicación</TableHead>
                       <TableHead className="w-28 text-right">Acciones</TableHead>
                     </TableRow>
                   </TableHeader>
@@ -871,6 +910,9 @@ export function VentasProductosClient({
                           <TableCell>{moneyLabel(mon, Number(v.precio_unitario))}</TableCell>
                           <TableCell className="font-medium">{moneyLabel(mon, Number(v.total))}</TableCell>
                           <TableCell className="text-muted-foreground">{metodoPagoLabel(v.metodo_pago)}</TableCell>
+                          <TableCell className="text-muted-foreground text-sm">
+                            {v.ubicacion_nombre ?? "—"}
+                          </TableCell>
                           <TableCell className="text-right">
                             <div className="flex items-center justify-end gap-1">
                               <Button
@@ -968,6 +1010,12 @@ export function VentasProductosClient({
                     </SelectContent>
                   </Select>
                 </div>
+                <UbicacionSelect
+                  id="ubicacion-venta-prod-edit"
+                  value={evUbicacionId}
+                  onValueChange={setEvUbicacionId}
+                  ubicaciones={ubicaciones}
+                />
               </div>
               <DialogFooter>
                 <Button type="button" variant="outline" onClick={() => setOpenEditVenta(false)}>

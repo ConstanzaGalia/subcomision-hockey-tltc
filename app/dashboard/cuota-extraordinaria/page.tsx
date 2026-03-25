@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server"
 import type { UserRole } from "@/lib/roles"
 import { hasAccess } from "@/lib/roles"
 import { CuotaExtraordinariaClient } from "@/components/cuota-extraordinaria-client"
+import { defaultUbicacionId, type UbicacionOption } from "@/lib/ubicaciones"
 
 export default async function CuotaExtraordinariaPage() {
   const supabase = await createClient()
@@ -25,9 +26,19 @@ export default async function CuotaExtraordinariaPage() {
     redirect("/dashboard")
   }
 
+  const { data: ubicacionesRaw } = await supabase
+    .from("ubicaciones")
+    .select("id, nombre, orden")
+    .eq("activo", true)
+    .order("orden", { ascending: true, nullsFirst: false })
+    .order("nombre", { ascending: true })
+
+  const ubicaciones: UbicacionOption[] = (ubicacionesRaw ?? []) as UbicacionOption[]
+  const ubicacionDefaultId = defaultUbicacionId(ubicaciones)
+
   const { data: cuotas, error: cuotasError } = await supabase
     .from("cuota_extraordinaria")
-    .select("*")
+    .select("*, ubicaciones(nombre)")
     .order("created_at", { ascending: false })
 
   if (cuotasError) {
@@ -43,6 +54,8 @@ export default async function CuotaExtraordinariaPage() {
     fecha: string
     created_at: string
     user_id: string
+    ubicacion_id: string
+    ubicaciones?: { nombre: string } | null
     recibo_generado_por?: string | null
   }>
 
@@ -59,6 +72,7 @@ export default async function CuotaExtraordinariaPage() {
 
   const cuotasEnriquecidas = cuotaRows.map((c) => ({
     ...c,
+    ubicacion_nombre: c.ubicaciones?.nombre ?? null,
     recibo_generado_por_nombre_apellido: c.recibo_generado_por ? profileById.get(c.recibo_generado_por) ?? null : null,
   }))
 
@@ -70,7 +84,11 @@ export default async function CuotaExtraordinariaPage() {
           Registrá cuotas extraordinarias en USD o ARS y descargá sus recibos en PDF.
         </p>
       </div>
-      <CuotaExtraordinariaClient initialCuotas={cuotasEnriquecidas as any} />
+      <CuotaExtraordinariaClient
+        initialCuotas={cuotasEnriquecidas as any}
+        ubicaciones={ubicaciones}
+        defaultUbicacionId={ubicacionDefaultId}
+      />
     </div>
   )
 }

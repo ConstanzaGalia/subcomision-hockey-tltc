@@ -2,6 +2,7 @@ import { redirect } from "next/navigation"
 import { createClient } from "@/lib/supabase/server"
 import { hasAccess, type UserRole } from "@/lib/roles"
 import { PrestamosClient } from "@/components/prestamos-client"
+import { defaultUbicacionId, type UbicacionOption } from "@/lib/ubicaciones"
 
 export default async function PrestamosPage() {
   const supabase = await createClient()
@@ -24,9 +25,19 @@ export default async function PrestamosPage() {
     redirect("/dashboard")
   }
 
+  const { data: ubicacionesRaw } = await supabase
+    .from("ubicaciones")
+    .select("id, nombre, orden")
+    .eq("activo", true)
+    .order("orden", { ascending: true, nullsFirst: false })
+    .order("nombre", { ascending: true })
+
+  const ubicaciones: UbicacionOption[] = (ubicacionesRaw ?? []) as UbicacionOption[]
+  const ubicacionDefaultId = defaultUbicacionId(ubicaciones)
+
   const { data: prestamos } = await supabase
     .from("prestamos")
-    .select("*")
+    .select("*, ubicaciones(nombre)")
     .order("created_at", { ascending: false })
 
   return (
@@ -37,7 +48,18 @@ export default async function PrestamosPage() {
           Gestion de prestamos de la Sub Comision de Hockey
         </p>
       </div>
-      <PrestamosClient initialPrestamos={prestamos ?? []} />
+      <PrestamosClient
+        initialPrestamos={(prestamos ?? []).map((p) => {
+          const row = p as Record<string, unknown> & { id: string }
+          const ub = row.ubicaciones as { nombre: string } | null | undefined
+          return {
+            ...row,
+            ubicacion_nombre: ub?.nombre ?? null,
+          }
+        }) as any}
+        ubicaciones={ubicaciones}
+        defaultUbicacionId={ubicacionDefaultId}
+      />
     </div>
   )
 }

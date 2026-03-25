@@ -94,6 +94,7 @@ export async function updateProductoVenta(
     total: number
     fecha: string
     metodo_pago: "EFECTIVO" | "TRANSFERENCIA"
+    ubicacion_id: string
   }
 ): Promise<VentasProductosActionResult> {
   const supabase = await createClient()
@@ -123,6 +124,7 @@ export async function updateProductoVenta(
         total: data.total,
         fecha: data.fecha,
         metodo_pago: data.metodo_pago,
+        ubicacion_id: data.ubicacion_id,
       })
       .eq("id", ventaId)
 

@@ -12,7 +12,7 @@ function canManagePrestamos(role: UserRole): boolean {
 
 export async function updatePrestamo(
   prestamoId: string,
-  data: { nombre_apellido: string; monto: number }
+  data: { nombre_apellido: string; monto: number; ubicacion_id: string }
 ): Promise<PrestamosActionResult> {
   const supabase = await createClient()
   const {
@@ -37,6 +37,7 @@ export async function updatePrestamo(
       .update({
         nombre_apellido: data.nombre_apellido.trim(),
         monto: data.monto,
+        ubicacion_id: data.ubicacion_id,
       })
       .eq("id", prestamoId)
 

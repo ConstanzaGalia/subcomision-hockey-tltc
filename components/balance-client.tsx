@@ -48,6 +48,8 @@ import {
   updateBalanceMovimiento,
   type BalanceMovimientoUpdate,
 } from "@/app/dashboard/balance/actions"
+import { UbicacionSelect } from "@/components/ubicacion-select"
+import type { UbicacionOption } from "@/lib/ubicaciones"
 
 export type BalanceMovimiento = {
   id: string
@@ -59,6 +61,8 @@ export type BalanceMovimiento = {
   created_at: string
   updated_at?: string
   user_id: string
+  ubicacion_id: string
+  ubicacion_nombre?: string | null
 }
 
 function todayISODate(): string {
@@ -80,7 +84,15 @@ function moneyLabel(moneda: "ARS" | "USD", monto: number): string {
   return `${prefix} ${Number(monto).toLocaleString("es-AR")}`
 }
 
-export function BalanceClient({ initialMovimientos }: { initialMovimientos: BalanceMovimiento[] }) {
+export function BalanceClient({
+  initialMovimientos,
+  ubicaciones,
+  defaultUbicacionId,
+}: {
+  initialMovimientos: BalanceMovimiento[]
+  ubicaciones: UbicacionOption[]
+  defaultUbicacionId: string
+}) {
   const [movimientos, setMovimientos] = useState<BalanceMovimiento[]>(initialMovimientos)
   const router = useRouter()
 
@@ -91,6 +103,7 @@ export function BalanceClient({ initialMovimientos }: { initialMovimientos: Bala
   const [monto, setMonto] = useState("")
   const [descripcion, setDescripcion] = useState("")
   const [fecha, setFecha] = useState(todayISODate())
+  const [ubicacionId, setUbicacionId] = useState(defaultUbicacionId)
 
   const [openEdit, setOpenEdit] = useState(false)
   const [savingEdit, setSavingEdit] = useState(false)
@@ -100,6 +113,7 @@ export function BalanceClient({ initialMovimientos }: { initialMovimientos: Bala
   const [editMonto, setEditMonto] = useState("")
   const [editDescripcion, setEditDescripcion] = useState("")
   const [editFecha, setEditFecha] = useState(todayISODate())
+  const [editUbicacionId, setEditUbicacionId] = useState("")
 
   const [openDelete, setOpenDelete] = useState(false)
   const [deleting, setDeleting] = useState(false)
@@ -146,6 +160,12 @@ export function BalanceClient({ initialMovimientos }: { initialMovimientos: Bala
       return
     }
 
+    if (!ubicacionId) {
+      toast.error("Seleccioná una ubicación")
+      setCreating(false)
+      return
+    }
+
     const { data, error } = await supabase
       .from("balance_movimientos")
       .insert({
@@ -155,6 +175,7 @@ export function BalanceClient({ initialMovimientos }: { initialMovimientos: Bala
         descripcion: descripcion.trim() ? descripcion.trim() : null,
         fecha,
         user_id: user.id,
+        ubicacion_id: ubicacionId,
       })
       .select()
       .single()
@@ -165,12 +186,14 @@ export function BalanceClient({ initialMovimientos }: { initialMovimientos: Bala
       return
     }
 
-    setMovimientos((prev) => [data as BalanceMovimiento, ...prev])
+    const ubNombre = ubicaciones.find((u) => u.id === ubicacionId)?.nombre ?? null
+    setMovimientos((prev) => [{ ...(data as BalanceMovimiento), ubicacion_nombre: ubNombre }, ...prev])
     setMonto("")
     setDescripcion("")
     setFecha(todayISODate())
     setTipo("INGRESO")
     setMoneda("ARS")
+    setUbicacionId(defaultUbicacionId)
     setOpenCreate(false)
     setCreating(false)
     toast.success("Movimiento registrado")
@@ -184,6 +207,7 @@ export function BalanceClient({ initialMovimientos }: { initialMovimientos: Bala
     setEditMonto(String(m.monto))
     setEditDescripcion(m.descripcion ?? "")
     setEditFecha(m.fecha)
+    setEditUbicacionId(m.ubicacion_id || defaultUbicacionId)
     setOpenEdit(true)
   }
 
@@ -201,12 +225,18 @@ export function BalanceClient({ initialMovimientos }: { initialMovimientos: Bala
       return
     }
 
+    if (!editUbicacionId) {
+      toast.error("Seleccioná una ubicación")
+      return
+    }
+
     const payload: BalanceMovimientoUpdate = {
       tipo: editTipo,
       moneda: editMoneda,
       monto: montoNum,
       descripcion: editDescripcion.trim() ? editDescripcion.trim() : null,
       fecha: editFecha,
+      ubicacion_id: editUbicacionId,
     }
 
     setSavingEdit(true)
@@ -217,8 +247,11 @@ export function BalanceClient({ initialMovimientos }: { initialMovimientos: Bala
       return
     }
 
+    const ubNombre = ubicaciones.find((u) => u.id === editUbicacionId)?.nombre ?? null
     setMovimientos((prev) =>
-      prev.map((x) => (x.id === editing.id ? { ...x, ...payload } : x))
+      prev.map((x) =>
+        x.id === editing.id ? { ...x, ...payload, ubicacion_nombre: ubNombre } : x
+      )
     )
     setSavingEdit(false)
     setOpenEdit(false)
@@ -302,7 +335,13 @@ export function BalanceClient({ initialMovimientos }: { initialMovimientos: Bala
 
       <div className="flex items-center justify-between gap-3">
         <h2 className="text-lg font-semibold text-foreground">Movimientos</h2>
-        <Dialog open={openCreate} onOpenChange={setOpenCreate}>
+        <Dialog
+          open={openCreate}
+          onOpenChange={(o) => {
+            setOpenCreate(o)
+            if (o) setUbicacionId(defaultUbicacionId)
+          }}
+        >
           <DialogTrigger asChild>
             <Button>
               <Plus className="mr-2 h-4 w-4" />
@@ -379,6 +418,12 @@ export function BalanceClient({ initialMovimientos }: { initialMovimientos: Bala
                     onChange={(e) => setDescripcion(e.target.value)}
                   />
                 </div>
+                <UbicacionSelect
+                  id="ubicacion-balance"
+                  value={ubicacionId}
+                  onValueChange={setUbicacionId}
+                  ubicaciones={ubicaciones}
+                />
               </div>
               <DialogFooter>
                 <Button type="button" variant="outline" onClick={() => setOpenCreate(false)}>
@@ -460,6 +505,12 @@ export function BalanceClient({ initialMovimientos }: { initialMovimientos: Bala
                     onChange={(e) => setEditDescripcion(e.target.value)}
                   />
                 </div>
+                <UbicacionSelect
+                  id="ubicacion-balance-edit"
+                  value={editUbicacionId}
+                  onValueChange={setEditUbicacionId}
+                  ubicaciones={ubicaciones}
+                />
               </div>
               <DialogFooter>
                 <Button type="button" variant="outline" onClick={() => setOpenEdit(false)}>
@@ -524,6 +575,7 @@ export function BalanceClient({ initialMovimientos }: { initialMovimientos: Bala
                   <TableHead>Moneda</TableHead>
                   <TableHead>Monto</TableHead>
                   <TableHead>Fecha</TableHead>
+                  <TableHead>Ubicación</TableHead>
                   <TableHead>Descripción</TableHead>
                   <TableHead className="w-28 text-right">Acciones</TableHead>
                 </TableRow>
@@ -540,6 +592,9 @@ export function BalanceClient({ initialMovimientos }: { initialMovimientos: Bala
                     <TableCell className="text-muted-foreground">{m.moneda}</TableCell>
                     <TableCell className="text-foreground">{moneyLabel(m.moneda, Number(m.monto))}</TableCell>
                     <TableCell className="text-muted-foreground">{formatFecha(m.fecha)}</TableCell>
+                    <TableCell className="text-muted-foreground text-sm">
+                      {m.ubicacion_nombre ?? "—"}
+                    </TableCell>
                     <TableCell className="text-muted-foreground">
                       {m.descripcion?.trim() ? m.descripcion : "—"}
                     </TableCell>
