@@ -5,6 +5,7 @@ import { Card, CardContent } from "@/components/ui/card"
 import { LandPlot, ShieldCheck, Banknote, Scale, Package, MapPin } from "lucide-react"
 import { hasAccess, type UserRole } from "@/lib/roles"
 import { DashboardStats } from "@/components/dashboard-stats"
+import { loadCampanaPublica } from "@/lib/campana-publica-server"
 
 export default async function DashboardPage() {
   const supabase = await createClient()
@@ -29,35 +30,10 @@ export default async function DashboardPage() {
   const canSeeUbicaciones = hasAccess(userRole, "/dashboard/ubicaciones")
   const canSeeAdmin = hasAccess(userRole, "/dashboard/admin")
 
-  let totalParcelas = 0
-  let totalPrestamos = 0
-  if (canSeeParcelas) {
-    const { data: ventas } = await supabase
-      .from("parcelas_ventas")
-      .select("id, precio")
-    totalParcelas = ventas?.reduce((sum, v) => sum + Number(v.precio), 0) ?? 0
-  }
-  if (canSeePrestamos) {
-    const { data: prestamos } = await supabase
-      .from("prestamos")
-      .select("monto")
-    totalPrestamos = prestamos?.reduce((sum, p) => sum + Number(p.monto), 0) ?? 0
-  }
-  const totalRecaudadoCancha = totalParcelas + totalPrestamos
-
-  let objetivoMonto = 0
-  try {
-    const { data: objetivo } = await supabase
-      .from("objetivo_cancha")
-      .select("monto_usd")
-      .eq("id", "default")
-      .single()
-    if (objetivo?.monto_usd != null) objetivoMonto = Number(objetivo.monto_usd)
-  } catch {
-    // Tabla objetivo_cancha puede no existir aún
-  }
-
   const canEditObjetivo = canSeeParcelas || canSeePrestamos
+  const canSeeCampana =
+    canSeeParcelas || canSeePrestamos || canSeeCuotaExtraordinaria || canSeeVentasProductos
+  const campana = canSeeCampana ? await loadCampanaPublica() : null
 
   const sections: { href: string; label: string; description: string; icon: typeof LandPlot }[] = []
   if (canSeeParcelas) {
@@ -126,13 +102,8 @@ export default async function DashboardPage() {
         </p>
       </div>
 
-      {/* Quick Stats: total recaudado y objetivo (solo visible para quien tiene acceso a parcelas o préstamos) */}
-      {(canSeeParcelas || canSeePrestamos) && (
-        <DashboardStats
-          totalRecaudadoCancha={totalRecaudadoCancha}
-          objetivoMonto={objetivoMonto}
-          canEditObjetivo={canEditObjetivo}
-        />
+      {campana && (
+        <DashboardStats campana={campana} canEditObjetivo={canEditObjetivo} />
       )}
 
       {/* Secciones: solo las que el rol puede ver */}
