@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server"
 import { campanaFromRpc, EMPTY_CAMPANA, parseCampana, type CampanaPublica } from "@/lib/campana-publica"
+import { getDolarBlue } from "@/lib/tipo-cambio"
 
 type ProductoJoin = { moneda: string | null } | { moneda: string | null }[] | null
 
@@ -13,7 +14,8 @@ function sumByCurrency(
 }
 
 async function loadCampanaFallback(
-  supabase: Awaited<ReturnType<typeof createClient>>
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  cotizacion: Awaited<ReturnType<typeof getDolarBlue>>
 ): Promise<CampanaPublica> {
   const [objetivo, parcelas, prestamos, cuotas, ventas, asignaciones] = await Promise.all([
     supabase.from("objetivo_cancha").select("monto_usd").eq("id", "default").maybeSingle(),
@@ -37,23 +39,29 @@ async function loadCampanaFallback(
     if (moneda === "ARS") productosArs += total
   }
 
-  return parseCampana({
-    objetivo_usd: objetivo.data?.monto_usd ?? 0,
-    parcelas_usd: (parcelas.data ?? []).reduce((sum, row) => sum + Number(row.precio ?? 0), 0),
-    prestamos_usd: (prestamos.data ?? []).reduce((sum, row) => sum + Number(row.monto ?? 0), 0),
-    cuota_usd: sumByCurrency(cuotaRows, "USD"),
-    cuota_ars: sumByCurrency(cuotaRows, "ARS"),
-    productos_usd: productosUsd,
-    productos_ars: productosArs,
-    parcelas_vendidas: asignaciones.count ?? 0,
-  })
+  return parseCampana(
+    {
+      objetivo_usd: objetivo.data?.monto_usd ?? 0,
+      parcelas_usd: (parcelas.data ?? []).reduce((sum, row) => sum + Number(row.precio ?? 0), 0),
+      prestamos_usd: (prestamos.data ?? []).reduce((sum, row) => sum + Number(row.monto ?? 0), 0),
+      cuota_usd: sumByCurrency(cuotaRows, "USD"),
+      cuota_ars: sumByCurrency(cuotaRows, "ARS"),
+      productos_usd: productosUsd,
+      productos_ars: productosArs,
+      parcelas_vendidas: asignaciones.count ?? 0,
+    },
+    cotizacion
+  )
 }
 
 export async function loadCampanaPublica(): Promise<CampanaPublica> {
   const supabase = await createClient()
-  const { data, error } = await supabase.rpc("get_campana_publica")
-  if (!error && data) return campanaFromRpc(data)
-  return loadCampanaFallback(supabase)
+  const [rpcResult, cotizacion] = await Promise.all([
+    supabase.rpc("get_campana_publica"),
+    getDolarBlue(),
+  ])
+  if (!rpcResult.error && rpcResult.data) return campanaFromRpc(rpcResult.data, cotizacion)
+  return loadCampanaFallback(supabase, cotizacion)
 }
 
 export { EMPTY_CAMPANA }

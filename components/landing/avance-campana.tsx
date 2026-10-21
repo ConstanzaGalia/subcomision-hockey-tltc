@@ -1,4 +1,5 @@
 import {
+  cotizacionLabel,
   formatMoney,
   TOTAL_PARCELAS,
   type CampanaPublica,
@@ -59,7 +60,7 @@ export function AvanceCampana({ campana }: { campana: CampanaPublica }) {
                 Recaudado
               </span>
               <div className="font-heading text-lg font-black text-emerald-600">
-                {formatMoney("USD", campana.totalUsd)}
+                {formatMoney("USD", campana.totalUsdEquivalente)}
               </div>
             </div>
             <div className="h-8 w-px bg-slate-200" />
@@ -83,7 +84,7 @@ export function AvanceCampana({ campana }: { campana: CampanaPublica }) {
                 </span>
               )}
               <div className="font-heading mt-4 text-3xl font-black text-[#fcb812] sm:text-4xl">
-                {formatMoney("USD", campana.totalUsd)}
+                {formatMoney("USD", campana.totalUsdEquivalente)}
               </div>
               <p className="mt-2 max-w-xl text-sm text-white/80">
                 Objetivo {formatMoney("USD", campana.objetivoUsd)}
@@ -96,6 +97,9 @@ export function AvanceCampana({ campana }: { campana: CampanaPublica }) {
                 </div>
                 <div className="font-heading text-lg font-black text-white">
                   {formatMoney("ARS", campana.totalArs)}
+                </div>
+                <div className="mt-1 text-xs text-white/70">
+                  ≈ {formatMoney("USD", campana.arsEnUsd)} al blue
                 </div>
               </div>
             )}
@@ -136,8 +140,9 @@ export function AvanceCampana({ campana }: { campana: CampanaPublica }) {
         </div>
 
         <p className="mt-6 text-xs leading-relaxed text-slate-500">
-          Montos aproximados. La cotización del proyecto puede variar hacia arriba o hacia abajo.
-          No se mezclan dólares y pesos: cada moneda se informa por separado.
+          {cotizacionLabel(campana)} El porcentaje usa dólares más pesos pasados al blue del
+          momento (no la cotización histórica de cada aporte). Las fuentes se siguen mostrando en
+          su moneda. Montos aproximados.
         </p>
       </div>
     </section>

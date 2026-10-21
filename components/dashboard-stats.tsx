@@ -18,7 +18,12 @@ import {
 import { DollarSign, Handshake, LandPlot, Package, Pencil, Target, Banknote } from "lucide-react"
 import { toast } from "sonner"
 import { updateObjetivoCancha } from "@/app/dashboard/actions"
-import { formatMoney, TOTAL_PARCELAS, type CampanaPublica } from "@/lib/campana-publica"
+import {
+  cotizacionLabel,
+  formatMoney,
+  TOTAL_PARCELAS,
+  type CampanaPublica,
+} from "@/lib/campana-publica"
 
 interface DashboardStatsProps {
   campana: CampanaPublica
@@ -63,7 +68,7 @@ export function DashboardStats({ campana, canEditObjetivo }: DashboardStatsProps
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-foreground">
-              {formatMoney("USD", campana.totalUsd)}
+              {formatMoney("USD", campana.totalUsdEquivalente)}
             </div>
             {campana.porcentaje != null && (
               <p className="mt-1 text-sm font-medium text-foreground">
@@ -73,9 +78,11 @@ export function DashboardStats({ campana, canEditObjetivo }: DashboardStatsProps
             <Progress value={campana.porcentaje ?? 0} className="mt-3 h-2" />
             {campana.totalArs > 0 && (
               <p className="mt-2 text-xs text-muted-foreground">
-                También {formatMoney("ARS", campana.totalArs)} en cuotas y ventas
+                Incluye {formatMoney("ARS", campana.totalArs)} (≈ {formatMoney("USD", campana.arsEnUsd)}{" "}
+                al blue)
               </p>
             )}
+            <p className="mt-2 text-xs text-muted-foreground">{cotizacionLabel(campana)}</p>
           </CardContent>
         </Card>
 
