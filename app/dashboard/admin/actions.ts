@@ -1,5 +1,6 @@
 "use server"
 
+import { revalidatePath } from "next/cache"
 import { createClient } from "@/lib/supabase/server"
 import { isValidRole, type UserRole } from "@/lib/roles"
 
@@ -41,14 +42,27 @@ export async function updateUserRole(
     return { ok: false, error: "No podés cambiar tu propio rol" }
   }
 
-  const { error } = await supabase
-    .from("profiles")
-    .update({ role: newRole as UserRole })
-    .eq("id", profileId)
+  const { error: rpcError } = await supabase.rpc("admin_set_user_role", {
+    target_id: profileId,
+    new_role: newRole,
+  })
 
-  if (error) {
-    return { ok: false, error: error.message }
+  if (rpcError) {
+    const missing =
+      rpcError.code === "PGRST202" ||
+      /function public\.admin_set_user_role/i.test(rpcError.message)
+
+    if (missing) {
+      return {
+        ok: false,
+        error:
+          "Supabase todavía no ve la función. Volvé a ejecutar scripts/024_admin_set_user_role.sql completo (incluye recargar el schema).",
+      }
+    }
+
+    return { ok: false, error: rpcError.message }
   }
 
+  revalidatePath("/dashboard/admin/usuarios")
   return { ok: true }
 }
