@@ -88,7 +88,7 @@ export default async function DashboardPage() {
     sections.push({
       href: "/dashboard/admin",
       label: "Administracion",
-      description: "Gestionar usuarios y roles",
+      description: "Jugadoras, divisiones y usuarios",
       icon: ShieldCheck,
     })
   }
