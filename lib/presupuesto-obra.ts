@@ -7,8 +7,51 @@ export type PresupuestoRubro = {
 
 /** Cotización redondeada de la obra civil inicial, sin desglose. */
 export const OBRA_CIVIL_APROX_ARS = 250_000_000
-/** Objetivo aproximado del proyecto completo (obra civil + carpeta). */
-export const PROYECTO_APROX_USD = 400_000
+/** Objetivo aproximado de esta campaña (obra civil + carpeta de arena). */
+export const PROYECTO_APROX_USD = 300_000
+
+export type ProyectoHito = {
+  id: string
+  momento: string
+  etiqueta: string
+  titulo: string
+  descripcion: string
+  pie?: string
+  /** false = horizonte posterior, visual más suave. */
+  destacado: boolean
+}
+
+export const PROYECTO_HITOS: ProyectoHito[] = [
+  {
+    id: "obra-civil",
+    momento: "Ahora",
+    etiqueta: "En marcha",
+    titulo: "Predio y obra civil",
+    descripcion:
+      "Suelo, base, cerca, desagües, bancos y accesos. Deja el campo listo para recibir la superficie de juego.",
+    destacado: true,
+  },
+  {
+    id: "carpeta-arena",
+    momento: "Ahora",
+    etiqueta: "Esta campaña",
+    titulo: "Carpeta de arena",
+    descripcion:
+      "Césped sintético con relleno de arena, para entrenar y para competencia regional. Esto, junto con la obra civil, es lo que se está recaudando ahora.",
+    pie: "TempoGrass (Argentina) representa a Limonta Sport, fabricante certificado por la FIH.",
+    destacado: true,
+  },
+  {
+    id: "cancha-agua",
+    momento: "Horizonte ~ 3 años",
+    etiqueta: "Siguiente etapa",
+    titulo: "Cancha de agua",
+    descripcion:
+      "Una superficie wet system: césped sintético irrigado, pensada para competencia de alto nivel. La bocha corre más rápido y el juego se parece al de élite. Pide sistema de riego y, en general, un colchón elástico (shock pad) bajo la carpeta. No forma parte del objetivo de ahora: con el predio y la arena ya hechos, el salto se evalúa más adelante, con TempoGrass / Limonta, cuando el club pueda encararlo.",
+    pie: "Cualquier esquema entre clubes de la asociación todavía se evalúa.",
+    destacado: false,
+  },
+]
 
 export const PRESUPUESTO_RUBROS: PresupuestoRubro[] = [
   {
