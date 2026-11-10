@@ -17,6 +17,7 @@ export type BalanceMovimientoUpdate = {
   descripcion: string | null
   fecha: string // YYYY-MM-DD
   ubicacion_id: string
+  cuenta_para_cancha: boolean
 }
 
 export async function updateBalanceMovimiento(
@@ -51,6 +52,7 @@ export async function updateBalanceMovimiento(
         descripcion: data.descripcion?.trim() ? data.descripcion.trim() : null,
         fecha: data.fecha,
         ubicacion_id: data.ubicacion_id,
+        cuenta_para_cancha: data.tipo === "INGRESO" ? data.cuenta_para_cancha : true,
       })
       .eq("id", movimientoId)
 

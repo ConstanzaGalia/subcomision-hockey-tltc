@@ -1,6 +1,10 @@
 -- RPC público (anon) con agregados de la campaña.
 -- Ejecutar en el SQL Editor de Supabase.
 -- No expone filas individuales ni nombres (salvo lo ya cubierto por get_parcelas_publicas).
+--
+-- Actualizaciones posteriores:
+--   scripts/025_cuenta_para_cancha.sql  → filtra por cuenta_para_cancha + balance
+--   scripts/026_rifas.sql               → suma rendimiento de rifas
 
 CREATE OR REPLACE FUNCTION public.get_campana_publica()
 RETURNS TABLE (

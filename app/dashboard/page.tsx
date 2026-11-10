@@ -2,7 +2,7 @@ import Link from "next/link"
 import { redirect } from "next/navigation"
 import { createClient } from "@/lib/supabase/server"
 import { Card, CardContent } from "@/components/ui/card"
-import { LandPlot, ShieldCheck, Banknote, Scale, Package, MapPin } from "lucide-react"
+import { LandPlot, ShieldCheck, Banknote, Scale, Package, MapPin, Ticket } from "lucide-react"
 import { hasAccess, type UserRole } from "@/lib/roles"
 import { DashboardStats } from "@/components/dashboard-stats"
 import { loadCampanaPublica } from "@/lib/campana-publica-server"
@@ -25,6 +25,7 @@ export default async function DashboardPage() {
   const canSeeParcelas = hasAccess(userRole, "/dashboard/parcelas")
   const canSeePrestamos = hasAccess(userRole, "/dashboard/prestamos")
   const canSeeCuotaExtraordinaria = hasAccess(userRole, "/dashboard/cuota-extraordinaria")
+  const canSeeRifas = hasAccess(userRole, "/dashboard/rifas")
   const canSeeVentasProductos = hasAccess(userRole, "/dashboard/ventas-productos")
   const canSeeBalance = hasAccess(userRole, "/dashboard/balance")
   const canSeeUbicaciones = hasAccess(userRole, "/dashboard/ubicaciones")
@@ -32,7 +33,12 @@ export default async function DashboardPage() {
 
   const canEditObjetivo = canSeeParcelas || canSeePrestamos
   const canSeeCampana =
-    canSeeParcelas || canSeePrestamos || canSeeCuotaExtraordinaria || canSeeVentasProductos
+    canSeeParcelas ||
+    canSeePrestamos ||
+    canSeeCuotaExtraordinaria ||
+    canSeeVentasProductos ||
+    canSeeBalance ||
+    canSeeRifas
   const campana = canSeeCampana ? await loadCampanaPublica() : null
 
   const sections: { href: string; label: string; description: string; icon: typeof LandPlot }[] = []
@@ -50,6 +56,14 @@ export default async function DashboardPage() {
       label: "Cuota Extraordinaria",
       description: "Registrar cuotas y descargar recibos",
       icon: Banknote,
+    })
+  }
+  if (canSeeRifas) {
+    sections.push({
+      href: "/dashboard/rifas",
+      label: "Rifas",
+      description: "Asignar rifas y registrar rendimiento",
+      icon: Ticket,
     })
   }
   if (canSeePrestamos) {

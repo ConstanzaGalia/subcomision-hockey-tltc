@@ -4,7 +4,7 @@ import {
   TOTAL_PARCELAS,
   type CampanaPublica,
 } from "@/lib/campana-publica"
-import { Banknote, Handshake, LandPlot, Package } from "lucide-react"
+import { Banknote, Handshake, LandPlot, Package, Scale, Ticket } from "lucide-react"
 
 function SourceCard({
   title,
@@ -112,7 +112,7 @@ export function AvanceCampana({ campana }: { campana: CampanaPublica }) {
           </div>
         </div>
 
-        <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           <SourceCard
             title="Parcelas"
             usd={campana.parcelasUsd}
@@ -136,6 +136,20 @@ export function AvanceCampana({ campana }: { campana: CampanaPublica }) {
             usd={campana.prestamosUsd}
             hint="Préstamos de socios"
             icon={Handshake}
+          />
+          <SourceCard
+            title="Balance"
+            usd={campana.balanceUsd}
+            ars={campana.balanceArs}
+            hint="Ingresos marcados para la cancha"
+            icon={Scale}
+          />
+          <SourceCard
+            title="Rifas"
+            usd={campana.rifasUsd}
+            ars={campana.rifasArs}
+            hint="Rendimiento rendido"
+            icon={Ticket}
           />
         </div>
 

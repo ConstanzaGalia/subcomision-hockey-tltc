@@ -50,6 +50,7 @@ import {
   updateCuotaExtraordinaria,
 } from "@/app/dashboard/cuota-extraordinaria/actions"
 import { UbicacionSelect } from "@/components/ubicacion-select"
+import { Checkbox } from "@/components/ui/checkbox"
 import type { UbicacionOption } from "@/lib/ubicaciones"
 
 type Moneda = "USD" | "ARS"
@@ -66,6 +67,7 @@ export type CuotaExtraordinariaRow = {
   user_id: string
   ubicacion_id: string
   ubicacion_nombre?: string | null
+  cuenta_para_cancha?: boolean
   recibo_generado_por_nombre_apellido?: string | null
   recibo_generado_por?: string | null
 }
@@ -108,6 +110,7 @@ export function CuotaExtraordinariaClient({
   const [monto, setMonto] = useState("")
   const [fecha, setFecha] = useState(todayISODate())
   const [ubicacionId, setUbicacionId] = useState(defaultUbicacionId)
+  const [cuentaParaCancha, setCuentaParaCancha] = useState(true)
   const [creating, setCreating] = useState(false)
 
   const [openEdit, setOpenEdit] = useState(false)
@@ -118,6 +121,7 @@ export function CuotaExtraordinariaClient({
   const [editMonto, setEditMonto] = useState("")
   const [editFecha, setEditFecha] = useState(todayISODate())
   const [editUbicacionId, setEditUbicacionId] = useState("")
+  const [editCuentaParaCancha, setEditCuentaParaCancha] = useState(true)
   const [savingEdit, setSavingEdit] = useState(false)
 
   const [openDelete, setOpenDelete] = useState(false)
@@ -176,6 +180,7 @@ export function CuotaExtraordinariaClient({
         fecha,
         user_id: user.id,
         ubicacion_id: ubicacionId,
+        cuenta_para_cancha: cuentaParaCancha,
       })
       .select()
       .single()
@@ -203,6 +208,7 @@ export function CuotaExtraordinariaClient({
     setMonto("")
     setFecha(todayISODate())
     setUbicacionId(defaultUbicacionId)
+    setCuentaParaCancha(true)
     setCreating(false)
     toast.success("Cuota registrada")
     router.refresh()
@@ -216,6 +222,7 @@ export function CuotaExtraordinariaClient({
     setEditMonto(String(c.monto))
     setEditFecha(c.fecha)
     setEditUbicacionId(c.ubicacion_id || defaultUbicacionId)
+    setEditCuentaParaCancha(c.cuenta_para_cancha ?? true)
     setOpenEdit(true)
   }
 
@@ -246,6 +253,7 @@ export function CuotaExtraordinariaClient({
       monto: montoNum,
       fecha: editFecha,
       ubicacion_id: editUbicacionId,
+      cuenta_para_cancha: editCuentaParaCancha,
     })
 
     if (!result.ok) {
@@ -267,6 +275,7 @@ export function CuotaExtraordinariaClient({
               fecha: editFecha,
               ubicacion_id: editUbicacionId,
               ubicacion_nombre: ubNombre,
+              cuenta_para_cancha: editCuentaParaCancha,
             }
           : x,
       ),
@@ -456,6 +465,19 @@ export function CuotaExtraordinariaClient({
                   onValueChange={setUbicacionId}
                   ubicaciones={ubicaciones}
                 />
+                <div className="flex items-start gap-2">
+                  <Checkbox
+                    id="cuota-cuenta-cancha"
+                    checked={cuentaParaCancha}
+                    onCheckedChange={(v) => setCuentaParaCancha(v === true)}
+                  />
+                  <Label htmlFor="cuota-cuenta-cancha" className="font-normal leading-snug">
+                    Cuenta para la cancha
+                    <span className="mt-0.5 block text-xs text-muted-foreground">
+                      Desmarcá si este ingreso no debe sumar al avance de la cancha.
+                    </span>
+                  </Label>
+                </div>
               </div>
               <DialogFooter>
                 <Button type="button" variant="outline" onClick={() => setOpenCreate(false)}>
@@ -487,7 +509,8 @@ export function CuotaExtraordinariaClient({
                       <TableHead>Ubicación</TableHead>
                       <TableHead>Monto</TableHead>
                       <TableHead>Fecha</TableHead>
-                    <TableHead>Método de pago</TableHead>
+                      <TableHead>Método de pago</TableHead>
+                      <TableHead>Cancha</TableHead>
                       <TableHead>Generador de recibo PDF</TableHead>
                       <TableHead className="text-right w-28">Acciones</TableHead>
                     </TableRow>
@@ -503,6 +526,9 @@ export function CuotaExtraordinariaClient({
                         <TableCell className="text-muted-foreground">{formatFecha(cuota.fecha)}</TableCell>
                         <TableCell className="text-muted-foreground">
                           {cuota.metodo_pago === "EFECTIVO" ? "Efectivo" : "Transferencia"}
+                        </TableCell>
+                        <TableCell className="text-muted-foreground text-sm">
+                          {(cuota.cuenta_para_cancha ?? true) ? "Sí" : "No"}
                         </TableCell>
                         <TableCell>
                           <div className="flex items-center justify-between gap-3">
@@ -625,6 +651,19 @@ export function CuotaExtraordinariaClient({
                 onValueChange={setEditUbicacionId}
                 ubicaciones={ubicaciones}
               />
+              <div className="flex items-start gap-2">
+                <Checkbox
+                  id="cuota-cuenta-cancha-edit"
+                  checked={editCuentaParaCancha}
+                  onCheckedChange={(v) => setEditCuentaParaCancha(v === true)}
+                />
+                <Label htmlFor="cuota-cuenta-cancha-edit" className="font-normal leading-snug">
+                  Cuenta para la cancha
+                  <span className="mt-0.5 block text-xs text-muted-foreground">
+                    Desmarcá si este ingreso no debe sumar al avance de la cancha.
+                  </span>
+                </Label>
+              </div>
             </div>
             <DialogFooter>
               <Button type="button" variant="outline" onClick={() => setOpenEdit(false)}>

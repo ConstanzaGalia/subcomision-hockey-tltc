@@ -9,7 +9,18 @@ import { Button } from "@/components/ui/button"
 import { Sheet, SheetContent, SheetTrigger, SheetTitle } from "@/components/ui/sheet"
 import { Separator } from "@/components/ui/separator"
 import { cn } from "@/lib/utils"
-import { Menu, LayoutDashboard, LandPlot, LogOut, ShieldCheck, Banknote, Scale, Package, MapPin } from "lucide-react"
+import {
+  Menu,
+  LayoutDashboard,
+  LandPlot,
+  LogOut,
+  ShieldCheck,
+  Banknote,
+  Scale,
+  Package,
+  MapPin,
+  Ticket,
+} from "lucide-react"
 import { toast } from "sonner"
 import { type UserRole, ROLE_LABELS, hasAccess, getRoleColor } from "@/lib/roles"
 
@@ -28,6 +39,11 @@ const navItems = [
     label: "Cuota Extraordinaria",
     href: "/dashboard/cuota-extraordinaria",
     icon: Banknote,
+  },
+  {
+    label: "Rifas",
+    href: "/dashboard/rifas",
+    icon: Ticket,
   },
   {
     label: "Prestamos",

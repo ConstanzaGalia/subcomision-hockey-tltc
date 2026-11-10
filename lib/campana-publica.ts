@@ -8,6 +8,10 @@ export type CampanaPublicaRow = {
   cuota_ars: number | string | null
   productos_usd: number | string | null
   productos_ars: number | string | null
+  balance_usd?: number | string | null
+  balance_ars?: number | string | null
+  rifas_usd?: number | string | null
+  rifas_ars?: number | string | null
   parcelas_vendidas: number | string | null
 }
 
@@ -19,6 +23,10 @@ export type CampanaPublica = {
   cuotaArs: number
   productosUsd: number
   productosArs: number
+  balanceUsd: number
+  balanceArs: number
+  rifasUsd: number
+  rifasArs: number
   parcelasVendidas: number
   totalUsd: number
   totalArs: number
@@ -46,6 +54,10 @@ export const EMPTY_CAMPANA: CampanaPublica = {
   cuotaArs: 0,
   productosUsd: 0,
   productosArs: 0,
+  balanceUsd: 0,
+  balanceArs: 0,
+  rifasUsd: 0,
+  rifasArs: 0,
   parcelasVendidas: 0,
   totalUsd: 0,
   totalArs: 0,
@@ -73,9 +85,13 @@ export function parseCampana(
   const cuotaArs = toNumber(row?.cuota_ars)
   const productosUsd = toNumber(row?.productos_usd)
   const productosArs = toNumber(row?.productos_ars)
+  const balanceUsd = toNumber(row?.balance_usd)
+  const balanceArs = toNumber(row?.balance_ars)
+  const rifasUsd = toNumber(row?.rifas_usd)
+  const rifasArs = toNumber(row?.rifas_ars)
   const parcelasVendidas = Math.round(toNumber(row?.parcelas_vendidas))
-  const totalUsd = parcelasUsd + prestamosUsd + cuotaUsd + productosUsd
-  const totalArs = cuotaArs + productosArs
+  const totalUsd = parcelasUsd + prestamosUsd + cuotaUsd + productosUsd + balanceUsd + rifasUsd
+  const totalArs = cuotaArs + productosArs + balanceArs + rifasArs
   const venta = cotizacion.venta > 0 ? cotizacion.venta : DOLAR_BLUE_FALLBACK
   const arsEnUsd = totalArs > 0 ? totalArs / venta : 0
   const totalUsdEquivalente = totalUsd + arsEnUsd
@@ -90,6 +106,10 @@ export function parseCampana(
     cuotaArs,
     productosUsd,
     productosArs,
+    balanceUsd,
+    balanceArs,
+    rifasUsd,
+    rifasArs,
     parcelasVendidas,
     totalUsd,
     totalArs,

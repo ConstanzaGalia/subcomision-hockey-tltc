@@ -32,6 +32,7 @@ const SECTION_ACCESS: Record<string, UserRole[]> = {
   "/dashboard/parcelas": ["ADMIN", "SUBCOMISION"],
   "/dashboard/prestamos": ["ADMIN", "SUBCOMISION"],
   "/dashboard/cuota-extraordinaria": ["ADMIN", "SUBCOMISION"],
+  "/dashboard/rifas": ["ADMIN", "SUBCOMISION"],
   "/dashboard/balance": ["ADMIN", "SUBCOMISION"],
   "/dashboard/ventas-productos": ["ADMIN", "SUBCOMISION"],
   "/dashboard/ubicaciones": ["ADMIN", "SUBCOMISION"],

@@ -82,6 +82,7 @@ export type VentaProductoRow = {
   ubicacion_nombre?: string | null
   producto_nombre: string
   producto_moneda: Moneda | null
+  cuenta_para_cancha?: boolean
 }
 
 function roundMoney(n: number): number {
@@ -159,6 +160,7 @@ export function VentasProductosClient({
   const [vFecha, setVFecha] = useState(todayISODate())
   const [vMetodoPago, setVMetodoPago] = useState<MetodoPago>("EFECTIVO")
   const [vUbicacionId, setVUbicacionId] = useState(defaultUbicacionId)
+  const [vCuentaParaCancha, setVCuentaParaCancha] = useState(true)
   const [creatingVenta, setCreatingVenta] = useState(false)
 
   // --- Ventas: editar ---
@@ -170,6 +172,7 @@ export function VentasProductosClient({
   const [evFecha, setEvFecha] = useState(todayISODate())
   const [evMetodoPago, setEvMetodoPago] = useState<MetodoPago>("EFECTIVO")
   const [evUbicacionId, setEvUbicacionId] = useState("")
+  const [evCuentaParaCancha, setEvCuentaParaCancha] = useState(true)
   const [savingVenta, setSavingVenta] = useState(false)
 
   const [openDelVenta, setOpenDelVenta] = useState(false)
@@ -331,6 +334,7 @@ export function VentasProductosClient({
       setVFecha(todayISODate())
       setVMetodoPago("EFECTIVO")
       setVUbicacionId(defaultUbicacionId)
+      setVCuentaParaCancha(true)
     }
   }
 
@@ -386,6 +390,7 @@ export function VentasProductosClient({
         metodo_pago: vMetodoPago,
         user_id: user.id,
         ubicacion_id: vUbicacionId,
+        cuenta_para_cancha: vCuentaParaCancha,
       })
       .select()
       .single()
@@ -409,6 +414,7 @@ export function VentasProductosClient({
       user_id: string
       created_at: string
       ubicacion_id: string
+      cuenta_para_cancha?: boolean
     }
     const row: VentaProductoRow = {
       id: d.id,
@@ -424,8 +430,10 @@ export function VentasProductosClient({
       ubicacion_nombre: ubNombre,
       producto_nombre: prod?.nombre ?? "—",
       producto_moneda: prod?.moneda ?? null,
+      cuenta_para_cancha: d.cuenta_para_cancha ?? vCuentaParaCancha,
     }
     setVentas((prev) => [row, ...prev])
+    setVCuentaParaCancha(true)
     setOpenVenta(false)
     setCreatingVenta(false)
     toast.success("Venta registrada")
@@ -440,6 +448,7 @@ export function VentasProductosClient({
     setEvFecha(v.fecha)
     setEvMetodoPago(v.metodo_pago)
     setEvUbicacionId(v.ubicacion_id || defaultUbicacionId)
+    setEvCuentaParaCancha(v.cuenta_para_cancha ?? true)
     setOpenEditVenta(true)
   }
 
@@ -476,6 +485,7 @@ export function VentasProductosClient({
       fecha: evFecha,
       metodo_pago: evMetodoPago,
       ubicacion_id: evUbicacionId,
+      cuenta_para_cancha: evCuentaParaCancha,
     })
     if (!result.ok) {
       toast.error("Error al actualizar", { description: result.error })
@@ -500,6 +510,7 @@ export function VentasProductosClient({
               ubicacion_nombre: ubNombre,
               producto_nombre: prod?.nombre ?? x.producto_nombre,
               producto_moneda: prod?.moneda ?? x.producto_moneda,
+              cuenta_para_cancha: evCuentaParaCancha,
             }
           : x
       )
@@ -852,6 +863,19 @@ export function VentasProductosClient({
                     onValueChange={setVUbicacionId}
                     ubicaciones={ubicaciones}
                   />
+                  <div className="flex items-start gap-2">
+                    <Checkbox
+                      id="venta-prod-cuenta-cancha"
+                      checked={vCuentaParaCancha}
+                      onCheckedChange={(v) => setVCuentaParaCancha(v === true)}
+                    />
+                    <Label htmlFor="venta-prod-cuenta-cancha" className="font-normal leading-snug">
+                      Cuenta para la cancha
+                      <span className="mt-0.5 block text-xs text-muted-foreground">
+                        Desmarcá si este ingreso no debe sumar al avance de la cancha.
+                      </span>
+                    </Label>
+                  </div>
                   {ventaPreviewTotal != null && vProductoId && (
                     <p className="text-sm text-muted-foreground">
                       Total:{" "}
@@ -896,6 +920,7 @@ export function VentasProductosClient({
                       <TableHead>Total</TableHead>
                       <TableHead>Medio de pago</TableHead>
                       <TableHead>Ubicación</TableHead>
+                      <TableHead>Cancha</TableHead>
                       <TableHead className="w-28 text-right">Acciones</TableHead>
                     </TableRow>
                   </TableHeader>
@@ -912,6 +937,9 @@ export function VentasProductosClient({
                           <TableCell className="text-muted-foreground">{metodoPagoLabel(v.metodo_pago)}</TableCell>
                           <TableCell className="text-muted-foreground text-sm">
                             {v.ubicacion_nombre ?? "—"}
+                          </TableCell>
+                          <TableCell className="text-muted-foreground">
+                            {(v.cuenta_para_cancha ?? true) ? "Sí" : "No"}
                           </TableCell>
                           <TableCell className="text-right">
                             <div className="flex items-center justify-end gap-1">
@@ -1016,6 +1044,19 @@ export function VentasProductosClient({
                   onValueChange={setEvUbicacionId}
                   ubicaciones={ubicaciones}
                 />
+                <div className="flex items-start gap-2">
+                  <Checkbox
+                    id="venta-prod-cuenta-cancha-edit"
+                    checked={evCuentaParaCancha}
+                    onCheckedChange={(v) => setEvCuentaParaCancha(v === true)}
+                  />
+                  <Label htmlFor="venta-prod-cuenta-cancha-edit" className="font-normal leading-snug">
+                    Cuenta para la cancha
+                    <span className="mt-0.5 block text-xs text-muted-foreground">
+                      Desmarcá si este ingreso no debe sumar al avance de la cancha.
+                    </span>
+                  </Label>
+                </div>
               </div>
               <DialogFooter>
                 <Button type="button" variant="outline" onClick={() => setOpenEditVenta(false)}>

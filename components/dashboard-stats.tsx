@@ -15,7 +15,17 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
-import { DollarSign, Handshake, LandPlot, Package, Pencil, Target, Banknote } from "lucide-react"
+import {
+  DollarSign,
+  Handshake,
+  LandPlot,
+  Package,
+  Pencil,
+  Target,
+  Banknote,
+  Scale,
+  Ticket,
+} from "lucide-react"
 import { toast } from "sonner"
 import { updateObjetivoCancha } from "@/app/dashboard/actions"
 import {
@@ -120,7 +130,7 @@ export function DashboardStats({ campana, canEditObjetivo }: DashboardStatsProps
         </Card>
       </div>
 
-      <div className="grid gap-3 grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-3 grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
         <Card className="py-4">
           <CardContent className="px-4">
             <div className="flex items-center gap-2 text-xs text-muted-foreground">
@@ -167,6 +177,32 @@ export function DashboardStats({ campana, canEditObjetivo }: DashboardStatsProps
             </div>
             <div className="mt-1 font-semibold">{formatMoney("USD", campana.prestamosUsd)}</div>
             <p className="text-xs text-muted-foreground">Aportes reintegrables</p>
+          </CardContent>
+        </Card>
+        <Card className="py-4">
+          <CardContent className="px-4">
+            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+              <Scale className="h-3.5 w-3.5" />
+              Balance
+            </div>
+            <div className="mt-1 font-semibold">{formatMoney("USD", campana.balanceUsd)}</div>
+            {campana.balanceArs > 0 && (
+              <p className="text-xs text-muted-foreground">
+                {formatMoney("ARS", campana.balanceArs)}
+              </p>
+            )}
+          </CardContent>
+        </Card>
+        <Card className="py-4">
+          <CardContent className="px-4">
+            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+              <Ticket className="h-3.5 w-3.5" />
+              Rifas
+            </div>
+            <div className="mt-1 font-semibold">{formatMoney("USD", campana.rifasUsd)}</div>
+            {campana.rifasArs > 0 && (
+              <p className="text-xs text-muted-foreground">{formatMoney("ARS", campana.rifasArs)}</p>
+            )}
           </CardContent>
         </Card>
       </div>
