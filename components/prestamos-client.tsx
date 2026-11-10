@@ -51,6 +51,7 @@ interface Prestamo {
   user_id: string
   ubicacion_id: string
   ubicacion_nombre?: string | null
+  cuenta_para_cancha?: boolean
 }
 
 export function PrestamosClient({
@@ -67,12 +68,14 @@ export function PrestamosClient({
   const [nombre, setNombre] = useState("")
   const [monto, setMonto] = useState("")
   const [ubicacionId, setUbicacionId] = useState(defaultUbicacionId)
+  const [cuentaParaCancha, setCuentaParaCancha] = useState(true)
   const [loading, setLoading] = useState(false)
   const [openEdit, setOpenEdit] = useState(false)
   const [editingPrestamo, setEditingPrestamo] = useState<Prestamo | null>(null)
   const [editNombre, setEditNombre] = useState("")
   const [editMonto, setEditMonto] = useState("")
   const [editUbicacionId, setEditUbicacionId] = useState("")
+  const [editCuentaParaCancha, setEditCuentaParaCancha] = useState(true)
   const [savingEdit, setSavingEdit] = useState(false)
   const [openDelete, setOpenDelete] = useState(false)
   const [prestamoToDelete, setPrestamoToDelete] = useState<Prestamo | null>(null)
@@ -107,6 +110,7 @@ export function PrestamosClient({
         monto: parseFloat(monto),
         user_id: user.id,
         ubicacion_id: ubicacionId,
+        cuenta_para_cancha: cuentaParaCancha,
       })
       .select()
       .single()
@@ -120,6 +124,7 @@ export function PrestamosClient({
     setNombre("")
     setMonto("")
     setUbicacionId(defaultUbicacionId)
+    setCuentaParaCancha(true)
     setOpen(false)
     setLoading(false)
     toast.success("Préstamo registrado")
@@ -145,6 +150,7 @@ export function PrestamosClient({
     setEditNombre(p.nombre_apellido)
     setEditMonto(String(p.monto))
     setEditUbicacionId(p.ubicacion_id || defaultUbicacionId)
+    setEditCuentaParaCancha(p.cuenta_para_cancha ?? true)
     setOpenEdit(true)
   }
 
@@ -160,6 +166,7 @@ export function PrestamosClient({
       nombre_apellido: editNombre.trim(),
       monto: parseFloat(editMonto),
       ubicacion_id: editUbicacionId,
+      cuenta_para_cancha: editCuentaParaCancha,
     })
     if (!result.ok) {
       toast.error("Error al actualizar", { description: result.error })
@@ -176,6 +183,7 @@ export function PrestamosClient({
               monto: parseFloat(editMonto),
               ubicacion_id: editUbicacionId,
               ubicacion_nombre: ubNombre,
+              cuenta_para_cancha: editCuentaParaCancha,
             }
           : p
       )
@@ -312,6 +320,19 @@ export function PrestamosClient({
                   onValueChange={setUbicacionId}
                   ubicaciones={ubicaciones}
                 />
+                <div className="flex items-start gap-2">
+                  <Checkbox
+                    id="prestamo-cuenta-cancha"
+                    checked={cuentaParaCancha}
+                    onCheckedChange={(v) => setCuentaParaCancha(v === true)}
+                  />
+                  <Label htmlFor="prestamo-cuenta-cancha" className="font-normal leading-snug">
+                    Cuenta para la cancha
+                    <span className="mt-0.5 block text-xs text-muted-foreground">
+                      Desmarcá si este ingreso no debe sumar al avance de la cancha.
+                    </span>
+                  </Label>
+                </div>
               </div>
               <DialogFooter>
                 <Button type="button" variant="outline" onClick={() => setOpen(false)}>
@@ -367,6 +388,19 @@ export function PrestamosClient({
                   onValueChange={setEditUbicacionId}
                   ubicaciones={ubicaciones}
                 />
+                <div className="flex items-start gap-2">
+                  <Checkbox
+                    id="prestamo-cuenta-cancha-edit"
+                    checked={editCuentaParaCancha}
+                    onCheckedChange={(v) => setEditCuentaParaCancha(v === true)}
+                  />
+                  <Label htmlFor="prestamo-cuenta-cancha-edit" className="font-normal leading-snug">
+                    Cuenta para la cancha
+                    <span className="mt-0.5 block text-xs text-muted-foreground">
+                      Desmarcá si este ingreso no debe sumar al avance de la cancha.
+                    </span>
+                  </Label>
+                </div>
               </div>
               <DialogFooter>
                 <Button type="button" variant="outline" onClick={() => setOpenEdit(false)}>
@@ -428,6 +462,7 @@ export function PrestamosClient({
                     <TableHead className="w-16">N.&deg;</TableHead>
                     <TableHead>Nombre y Apellido</TableHead>
                     <TableHead>Ubicación</TableHead>
+                    <TableHead>Cancha</TableHead>
                     <TableHead>Monto</TableHead>
                     <TableHead>Fecha</TableHead>
                     <TableHead className="w-28 text-right">Recibo</TableHead>
@@ -447,6 +482,9 @@ export function PrestamosClient({
                         <TableCell className="font-medium text-foreground">{prestamo.nombre_apellido}</TableCell>
                         <TableCell className="text-muted-foreground text-sm">
                           {prestamo.ubicacion_nombre ?? "—"}
+                        </TableCell>
+                        <TableCell className="text-muted-foreground">
+                          {(prestamo.cuenta_para_cancha ?? true) ? "Sí" : "No"}
                         </TableCell>
                         <TableCell className="text-foreground">
                           USD {Number(prestamo.monto).toLocaleString("es-AR")}

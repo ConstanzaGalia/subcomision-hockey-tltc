@@ -32,10 +32,13 @@ const SECTION_ACCESS: Record<string, UserRole[]> = {
   "/dashboard/parcelas": ["ADMIN", "SUBCOMISION"],
   "/dashboard/prestamos": ["ADMIN", "SUBCOMISION"],
   "/dashboard/cuota-extraordinaria": ["ADMIN", "SUBCOMISION"],
+  "/dashboard/rifas": ["ADMIN", "SUBCOMISION"],
   "/dashboard/balance": ["ADMIN", "SUBCOMISION"],
   "/dashboard/ventas-productos": ["ADMIN", "SUBCOMISION"],
   "/dashboard/ubicaciones": ["ADMIN", "SUBCOMISION"],
-  "/dashboard/admin": ["ADMIN"],
+  "/dashboard/admin": ["ADMIN", "SUBCOMISION", "COORDINADOR_DEPORTIVO", "ENTRENADOR"],
+  "/dashboard/admin/jugadoras": ["ADMIN", "SUBCOMISION", "COORDINADOR_DEPORTIVO", "ENTRENADOR"],
+  "/dashboard/admin/usuarios": ["ADMIN"],
 }
 
 export function hasAccess(role: UserRole, path: string): boolean {

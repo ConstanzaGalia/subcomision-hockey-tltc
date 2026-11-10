@@ -17,6 +17,7 @@ type Props = {
   totalParcelas?: number
   columns?: number
   imageSrc?: string
+  showFooter?: boolean
 }
 
 function clampParcelNumber(n: number, max: number) {
@@ -28,6 +29,7 @@ export function ParcelasMap({
   totalParcelas = 500,
   columns = 25,
   imageSrc = "/images/cancha-hockey-limpia.png",
+  showFooter = true,
 }: Props) {
   const isMobile = useIsMobile()
   const rows = Math.ceil(totalParcelas / columns)
@@ -46,7 +48,7 @@ export function ParcelasMap({
 
   return (
     <div className="w-full">
-      <div className="relative w-full overflow-hidden rounded-lg border bg-card">
+      <div className="relative w-full overflow-hidden rounded-2xl bg-card shadow-inner">
         <Image
           src={imageSrc}
           alt="Mapa de la cancha de hockey"
@@ -129,20 +131,21 @@ export function ParcelasMap({
         </div>
       </div>
 
-      <div className="mt-3 flex flex-wrap items-center justify-between gap-2 text-xs text-muted-foreground">
-        <div>
-          <span className="font-medium text-foreground">{soldMap.size}</span> vendidas /{" "}
-          <span className="font-medium text-foreground">{totalParcelas}</span> parcelas
+      {showFooter ? (
+        <div className="mt-4 flex flex-wrap items-center justify-between gap-3 text-sm text-muted-foreground">
+          <p>Consejo: acercá o alejá con el zoom del navegador para ver mejor los números.</p>
+          <div className="flex items-center gap-4">
+            <span className="inline-flex items-center gap-2">
+              <span className="h-3 w-3 rounded-sm bg-emerald-500/70 ring-1 ring-emerald-700/30" />
+              Vendida
+            </span>
+            <span className="inline-flex items-center gap-2">
+              <span className="h-3 w-3 rounded-sm border border-foreground/20 bg-background" />
+              Disponible
+            </span>
+          </div>
         </div>
-        <div className="flex items-center gap-2">
-          <span className="inline-flex items-center gap-1">
-            <span className="h-2 w-2 rounded-full bg-emerald-400" /> Vendida
-          </span>
-          <span className="inline-flex items-center gap-1">
-            <span className="h-2 w-2 rounded-full bg-white/30" /> Disponible
-          </span>
-        </div>
-      </div>
+      ) : null}
     </div>
   )
 }

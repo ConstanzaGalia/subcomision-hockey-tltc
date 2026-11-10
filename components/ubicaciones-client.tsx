@@ -127,8 +127,8 @@ export function UbicacionesClient({
       <div>
         <h2 className="mb-3 text-lg font-semibold text-foreground">Totales por ubicación</h2>
         <p className="mb-4 text-sm text-muted-foreground leading-relaxed">
-          Suma de parcelas (USD), cuotas, préstamos, ventas de productos y movimientos de balance (ingresos menos
-          gastos), separado por moneda.
+          Suma de parcelas (USD), cuotas, préstamos, ventas de productos, rifas (rendimiento) y
+          movimientos de balance (ingresos menos gastos), separado por moneda.
         </p>
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {totales.map((t) => (

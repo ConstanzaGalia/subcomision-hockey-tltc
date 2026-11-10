@@ -24,6 +24,8 @@ export function fuenteMovimientoLabel(fuente: string): string {
       return "Venta producto"
     case "BALANCE":
       return "Balance"
+    case "RIFA":
+      return "Rifa"
     default:
       return fuente
   }

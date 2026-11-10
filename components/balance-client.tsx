@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { Checkbox } from "@/components/ui/checkbox"
 import {
   Dialog,
   DialogContent,
@@ -63,6 +64,7 @@ export type BalanceMovimiento = {
   user_id: string
   ubicacion_id: string
   ubicacion_nombre?: string | null
+  cuenta_para_cancha?: boolean
 }
 
 function todayISODate(): string {
@@ -131,6 +133,7 @@ export function BalanceClient({
   const [descripcion, setDescripcion] = useState("")
   const [fecha, setFecha] = useState(todayISODate())
   const [ubicacionId, setUbicacionId] = useState(defaultUbicacionId)
+  const [cuentaParaCancha, setCuentaParaCancha] = useState(true)
 
   const [openEdit, setOpenEdit] = useState(false)
   const [savingEdit, setSavingEdit] = useState(false)
@@ -141,6 +144,7 @@ export function BalanceClient({
   const [editDescripcion, setEditDescripcion] = useState("")
   const [editFecha, setEditFecha] = useState(todayISODate())
   const [editUbicacionId, setEditUbicacionId] = useState("")
+  const [editCuentaParaCancha, setEditCuentaParaCancha] = useState(true)
 
   const [openDelete, setOpenDelete] = useState(false)
   const [deleting, setDeleting] = useState(false)
@@ -240,6 +244,9 @@ export function BalanceClient({
         fecha,
         user_id: user.id,
         ubicacion_id: ubicacionId,
+        ...(tipo === "INGRESO"
+          ? { cuenta_para_cancha: cuentaParaCancha }
+          : { cuenta_para_cancha: true }),
       })
       .select()
       .single()
@@ -258,6 +265,7 @@ export function BalanceClient({
     setTipo("INGRESO")
     setMoneda("ARS")
     setUbicacionId(defaultUbicacionId)
+    setCuentaParaCancha(true)
     setOpenCreate(false)
     setCreating(false)
     toast.success("Movimiento registrado")
@@ -272,6 +280,7 @@ export function BalanceClient({
     setEditDescripcion(m.descripcion ?? "")
     setEditFecha(m.fecha)
     setEditUbicacionId(m.ubicacion_id || defaultUbicacionId)
+    setEditCuentaParaCancha(m.cuenta_para_cancha ?? true)
     setOpenEdit(true)
   }
 
@@ -301,6 +310,7 @@ export function BalanceClient({
       descripcion: editDescripcion.trim() ? editDescripcion.trim() : null,
       fecha: editFecha,
       ubicacion_id: editUbicacionId,
+      cuenta_para_cancha: editTipo === "INGRESO" ? editCuentaParaCancha : true,
     }
 
     setSavingEdit(true)
@@ -535,6 +545,21 @@ export function BalanceClient({
                   onValueChange={setUbicacionId}
                   ubicaciones={ubicaciones}
                 />
+                {tipo === "INGRESO" && (
+                  <div className="flex items-start gap-2">
+                    <Checkbox
+                      id="balance-cuenta-cancha"
+                      checked={cuentaParaCancha}
+                      onCheckedChange={(v) => setCuentaParaCancha(v === true)}
+                    />
+                    <Label htmlFor="balance-cuenta-cancha" className="font-normal leading-snug">
+                      Cuenta para la cancha
+                      <span className="mt-0.5 block text-xs text-muted-foreground">
+                        Desmarcá si este ingreso no debe sumar al avance de la cancha.
+                      </span>
+                    </Label>
+                  </div>
+                )}
               </div>
               <DialogFooter>
                 <Button type="button" variant="outline" onClick={() => setOpenCreate(false)}>
@@ -622,6 +647,21 @@ export function BalanceClient({
                   onValueChange={setEditUbicacionId}
                   ubicaciones={ubicaciones}
                 />
+                {editTipo === "INGRESO" && (
+                  <div className="flex items-start gap-2">
+                    <Checkbox
+                      id="balance-cuenta-cancha-edit"
+                      checked={editCuentaParaCancha}
+                      onCheckedChange={(v) => setEditCuentaParaCancha(v === true)}
+                    />
+                    <Label htmlFor="balance-cuenta-cancha-edit" className="font-normal leading-snug">
+                      Cuenta para la cancha
+                      <span className="mt-0.5 block text-xs text-muted-foreground">
+                        Desmarcá si este ingreso no debe sumar al avance de la cancha.
+                      </span>
+                    </Label>
+                  </div>
+                )}
               </div>
               <DialogFooter>
                 <Button type="button" variant="outline" onClick={() => setOpenEdit(false)}>
@@ -694,6 +734,7 @@ export function BalanceClient({
                   <TableHead>Monto</TableHead>
                   <TableHead>Fecha</TableHead>
                   <TableHead>Ubicación</TableHead>
+                  <TableHead>Cancha</TableHead>
                   <TableHead>Descripción</TableHead>
                   <TableHead className="w-28 text-right">Acciones</TableHead>
                 </TableRow>
@@ -712,6 +753,13 @@ export function BalanceClient({
                     <TableCell className="text-muted-foreground">{formatFecha(m.fecha)}</TableCell>
                     <TableCell className="text-muted-foreground text-sm">
                       {m.ubicacion_nombre ?? "—"}
+                    </TableCell>
+                    <TableCell className="text-muted-foreground">
+                      {m.tipo === "INGRESO"
+                        ? (m.cuenta_para_cancha ?? true)
+                          ? "Sí"
+                          : "No"
+                        : "—"}
                     </TableCell>
                     <TableCell className="text-muted-foreground">
                       {m.descripcion?.trim() ? m.descripcion : "—"}
