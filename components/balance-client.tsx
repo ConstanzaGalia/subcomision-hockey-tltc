@@ -555,7 +555,7 @@ export function BalanceClient({
                     <Label htmlFor="balance-cuenta-cancha" className="font-normal leading-snug">
                       Cuenta para la cancha
                       <span className="mt-0.5 block text-xs text-muted-foreground">
-                        Desmarcá si este ingreso no debe sumar al avance de la cancha.
+                        Desmarcá si no debe sumar. Los gastos siempre restan del avance.
                       </span>
                     </Label>
                   </div>
@@ -657,7 +657,7 @@ export function BalanceClient({
                     <Label htmlFor="balance-cuenta-cancha-edit" className="font-normal leading-snug">
                       Cuenta para la cancha
                       <span className="mt-0.5 block text-xs text-muted-foreground">
-                        Desmarcá si este ingreso no debe sumar al avance de la cancha.
+                        Desmarcá si no debe sumar. Los gastos siempre restan del avance.
                       </span>
                     </Label>
                   </div>

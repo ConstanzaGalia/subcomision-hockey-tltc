@@ -141,7 +141,7 @@ export function AvanceCampana({ campana }: { campana: CampanaPublica }) {
             title="Balance"
             usd={campana.balanceUsd}
             ars={campana.balanceArs}
-            hint="Ingresos marcados para la cancha"
+            hint="Ingresos para cancha menos todos los gastos"
             icon={Scale}
           />
           <SourceCard

@@ -193,14 +193,26 @@ AS $$
       JOIN public.productos p ON p.id = v.producto_id
       WHERE p.moneda = 'ARS' AND v.cuenta_para_cancha = true
     ), 0),
-    COALESCE((
-      SELECT SUM(monto) FROM public.balance_movimientos
-      WHERE tipo = 'INGRESO' AND moneda = 'USD' AND cuenta_para_cancha = true
-    ), 0),
-    COALESCE((
-      SELECT SUM(monto) FROM public.balance_movimientos
-      WHERE tipo = 'INGRESO' AND moneda = 'ARS' AND cuenta_para_cancha = true
-    ), 0),
+    (
+      COALESCE((
+        SELECT SUM(monto) FROM public.balance_movimientos
+        WHERE tipo = 'INGRESO' AND moneda = 'USD' AND cuenta_para_cancha = true
+      ), 0)
+      - COALESCE((
+        SELECT SUM(monto) FROM public.balance_movimientos
+        WHERE tipo = 'GASTO' AND moneda = 'USD'
+      ), 0)
+    ),
+    (
+      COALESCE((
+        SELECT SUM(monto) FROM public.balance_movimientos
+        WHERE tipo = 'INGRESO' AND moneda = 'ARS' AND cuenta_para_cancha = true
+      ), 0)
+      - COALESCE((
+        SELECT SUM(monto) FROM public.balance_movimientos
+        WHERE tipo = 'GASTO' AND moneda = 'ARS'
+      ), 0)
+    ),
     COALESCE((
       SELECT SUM(p.monto)
       FROM public.rifas_pagos p

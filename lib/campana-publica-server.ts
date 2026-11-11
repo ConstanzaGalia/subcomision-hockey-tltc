@@ -17,7 +17,7 @@ async function loadCampanaFallback(
   supabase: Awaited<ReturnType<typeof createClient>>,
   cotizacion: Awaited<ReturnType<typeof getDolarBlue>>
 ): Promise<CampanaPublica> {
-  const [objetivo, parcelas, prestamos, cuotas, ventas, balance, rifas, asignaciones] =
+  const [objetivo, parcelas, prestamos, cuotas, ventas, balanceIngresos, balanceGastos, rifas, asignaciones] =
     await Promise.all([
       supabase.from("objetivo_cancha").select("monto_usd").eq("id", "default").maybeSingle(),
       supabase.from("parcelas_ventas").select("precio"),
@@ -32,6 +32,7 @@ async function loadCampanaFallback(
         .select("monto, moneda")
         .eq("tipo", "INGRESO")
         .eq("cuenta_para_cancha", true),
+      supabase.from("balance_movimientos").select("monto, moneda").eq("tipo", "GASTO"),
       supabase
         .from("rifas")
         .select("moneda, rifas_pagos(monto), rifas_campanas!inner(cuenta_para_cancha)")
@@ -41,7 +42,11 @@ async function loadCampanaFallback(
 
   const cuotaRows = (cuotas.data ?? []) as { monto: number | string; moneda: string }[]
   const ventaRows = (ventas.data ?? []) as { total: number | string; productos: ProductoJoin }[]
-  const balanceRows = (balance.data ?? []) as { monto: number | string; moneda: string }[]
+  const balanceIngresoRows = (balanceIngresos.data ?? []) as {
+    monto: number | string
+    moneda: string
+  }[]
+  const balanceGastoRows = (balanceGastos.data ?? []) as { monto: number | string; moneda: string }[]
   const rifaRows = (rifas.data ?? []) as {
     moneda: string
     rifas_pagos: { monto: number | string }[] | { monto: number | string } | null
@@ -79,8 +84,10 @@ async function loadCampanaFallback(
       cuota_ars: sumByCurrency(cuotaRows, "ARS"),
       productos_usd: productosUsd,
       productos_ars: productosArs,
-      balance_usd: sumByCurrency(balanceRows, "USD"),
-      balance_ars: sumByCurrency(balanceRows, "ARS"),
+      balance_usd:
+        sumByCurrency(balanceIngresoRows, "USD") - sumByCurrency(balanceGastoRows, "USD"),
+      balance_ars:
+        sumByCurrency(balanceIngresoRows, "ARS") - sumByCurrency(balanceGastoRows, "ARS"),
       rifas_usd: rifasUsd,
       rifas_ars: rifasArs,
       parcelas_vendidas: asignaciones.count ?? 0,
