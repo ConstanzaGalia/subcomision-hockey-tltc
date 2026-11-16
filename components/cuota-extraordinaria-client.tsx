@@ -159,6 +159,14 @@ export function CuotaExtraordinariaClient({
       return
     }
 
+    const jugadoraSel = jugadoraId ? jugadoras.find((j) => j.id === jugadoraId) : null
+    const nombreFinal =
+      (jugadoraSel ? `${jugadoraSel.nombre} ${jugadoraSel.apellido}`.trim() : nombre.trim()) || ""
+    if (!nombreFinal) {
+      toast.error("Elegí una jugadora o ingresá un nombre")
+      return
+    }
+
     setCreating(true)
     const supabase = createClient()
     const {
@@ -180,7 +188,7 @@ export function CuotaExtraordinariaClient({
     const { data, error } = await supabase
       .from("cuota_extraordinaria")
       .insert({
-        nombre_apellido: nombre.trim(),
+        nombre_apellido: nombreFinal,
         moneda,
         metodo_pago: metodoPago,
         monto: montoNum,
@@ -256,9 +264,21 @@ export function CuotaExtraordinariaClient({
       return
     }
 
+    const jugadoraSel = editJugadoraId
+      ? jugadoras.find((j) => j.id === editJugadoraId)
+      : null
+    const nombreFinal =
+      (jugadoraSel
+        ? `${jugadoraSel.nombre} ${jugadoraSel.apellido}`.trim()
+        : editNombre.trim()) || ""
+    if (!nombreFinal) {
+      toast.error("Elegí una jugadora o ingresá un nombre")
+      return
+    }
+
     setSavingEdit(true)
     const result = await updateCuotaExtraordinaria(editingCuota.id, {
-      nombre_apellido: editNombre.trim(),
+      nombre_apellido: nombreFinal,
       moneda: editMoneda,
       metodo_pago: editMetodoPago,
       monto: montoNum,
@@ -280,7 +300,7 @@ export function CuotaExtraordinariaClient({
         x.id === editingCuota.id
           ? {
               ...x,
-              nombre_apellido: editNombre.trim(),
+              nombre_apellido: nombreFinal,
               moneda: editMoneda,
               metodo_pago: editMetodoPago,
               monto: montoNum,
@@ -414,18 +434,21 @@ export function CuotaExtraordinariaClient({
                   onChange={({ id, nombreCompleto }) => {
                     setJugadoraId(id)
                     if (nombreCompleto) setNombre(nombreCompleto)
+                    else if (!id) setNombre("")
                   }}
                 />
-                <div className="flex flex-col gap-2">
-                  <Label htmlFor="nombre">Nombre y Apellido</Label>
-                  <Input
-                    id="nombre"
-                    placeholder="Ej: Juan Perez"
-                    value={nombre}
-                    onChange={(e) => setNombre(e.target.value)}
-                    required
-                  />
-                </div>
+                {!jugadoraId ? (
+                  <div className="flex flex-col gap-2">
+                    <Label htmlFor="nombre">Nombre y Apellido (si no es jugadora)</Label>
+                    <Input
+                      id="nombre"
+                      placeholder="Ej: Juan Perez"
+                      value={nombre}
+                      onChange={(e) => setNombre(e.target.value)}
+                      required
+                    />
+                  </div>
+                ) : null}
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="flex flex-col gap-2">
@@ -615,18 +638,21 @@ export function CuotaExtraordinariaClient({
                 onChange={({ id, nombreCompleto }) => {
                   setEditJugadoraId(id)
                   if (nombreCompleto) setEditNombre(nombreCompleto)
+                  else if (!id) setEditNombre("")
                 }}
               />
-              <div className="flex flex-col gap-2">
-                <Label htmlFor="edit-nombre">Nombre y Apellido</Label>
-                <Input
-                  id="edit-nombre"
-                  placeholder="Ej: Juan Perez"
-                  value={editNombre}
-                  onChange={(e) => setEditNombre(e.target.value)}
-                  required
-                />
-              </div>
+              {!editJugadoraId ? (
+                <div className="flex flex-col gap-2">
+                  <Label htmlFor="edit-nombre">Nombre y Apellido (si no es jugadora)</Label>
+                  <Input
+                    id="edit-nombre"
+                    placeholder="Ej: Juan Perez"
+                    value={editNombre}
+                    onChange={(e) => setEditNombre(e.target.value)}
+                    required
+                  />
+                </div>
+              ) : null}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="flex flex-col gap-2">
                   <Label>Moneda</Label>

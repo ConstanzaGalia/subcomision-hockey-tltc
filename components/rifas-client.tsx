@@ -365,6 +365,14 @@ export function RifasClient({
       return
     }
 
+    const jugadoraSel = jugadoraId ? jugadoras.find((j) => j.id === jugadoraId) : null
+    const nombreFinal =
+      (jugadoraSel ? `${jugadoraSel.nombre} ${jugadoraSel.apellido}`.trim() : nombre.trim()) || ""
+    if (!nombreFinal) {
+      toast.error("Elegí una jugadora o ingresá un nombre")
+      return
+    }
+
     setCreating(true)
     const supabase = createClient()
     const {
@@ -380,7 +388,7 @@ export function RifasClient({
       .from("rifas")
       .insert({
         campana_id: selectedCampanaId,
-        nombre_apellido: nombre.trim(),
+        nombre_apellido: nombreFinal,
         cantidad: cantidadNum,
         moneda,
         fecha,
@@ -449,9 +457,21 @@ export function RifasClient({
       return
     }
 
+    const jugadoraSel = editJugadoraId
+      ? jugadoras.find((j) => j.id === editJugadoraId)
+      : null
+    const nombreFinal =
+      (jugadoraSel
+        ? `${jugadoraSel.nombre} ${jugadoraSel.apellido}`.trim()
+        : editNombre.trim()) || ""
+    if (!nombreFinal) {
+      toast.error("Elegí una jugadora o ingresá un nombre")
+      return
+    }
+
     setSavingEdit(true)
     const result = await updateRifa(editing.id, {
-      nombre_apellido: editNombre.trim(),
+      nombre_apellido: nombreFinal,
       cantidad: cantidadNum,
       moneda: editMoneda,
       entregado: editEntregado,
@@ -472,7 +492,7 @@ export function RifasClient({
         x.id === editing.id
           ? {
               ...x,
-              nombre_apellido: editNombre.trim(),
+              nombre_apellido: nombreFinal,
               cantidad: cantidadNum,
               moneda: editMoneda,
               entregado: editEntregado,
@@ -840,17 +860,20 @@ export function RifasClient({
                       onChange={({ id, nombreCompleto }) => {
                         setJugadoraId(id)
                         if (nombreCompleto) setNombre(nombreCompleto)
+                        else if (!id) setNombre("")
                       }}
                     />
-                    <div className="flex flex-col gap-2">
-                      <Label htmlFor="rifa-nombre">Nombre y apellido</Label>
-                      <Input
-                        id="rifa-nombre"
-                        value={nombre}
-                        onChange={(e) => setNombre(e.target.value)}
-                        required
-                      />
-                    </div>
+                    {!jugadoraId ? (
+                      <div className="flex flex-col gap-2">
+                        <Label htmlFor="rifa-nombre">Nombre y apellido (si no es jugadora)</Label>
+                        <Input
+                          id="rifa-nombre"
+                          value={nombre}
+                          onChange={(e) => setNombre(e.target.value)}
+                          required
+                        />
+                      </div>
+                    ) : null}
                     <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                       <div className="flex flex-col gap-2">
                         <Label htmlFor="rifa-cantidad">Nº de rifas</Label>
@@ -1090,17 +1113,20 @@ export function RifasClient({
                 onChange={({ id, nombreCompleto }) => {
                   setEditJugadoraId(id)
                   if (nombreCompleto) setEditNombre(nombreCompleto)
+                  else if (!id) setEditNombre("")
                 }}
               />
-              <div className="flex flex-col gap-2">
-                <Label htmlFor="edit-rifa-nombre">Nombre y apellido</Label>
-                <Input
-                  id="edit-rifa-nombre"
-                  value={editNombre}
-                  onChange={(e) => setEditNombre(e.target.value)}
-                  required
-                />
-              </div>
+              {!editJugadoraId ? (
+                <div className="flex flex-col gap-2">
+                  <Label htmlFor="edit-rifa-nombre">Nombre y apellido (si no es jugadora)</Label>
+                  <Input
+                    id="edit-rifa-nombre"
+                    value={editNombre}
+                    onChange={(e) => setEditNombre(e.target.value)}
+                    required
+                  />
+                </div>
+              ) : null}
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <div className="flex flex-col gap-2">
                   <Label htmlFor="edit-rifa-cantidad">Nº de rifas</Label>

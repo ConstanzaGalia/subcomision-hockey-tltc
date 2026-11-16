@@ -166,8 +166,17 @@ export function ParcelasClient({
       return
     }
 
+    const jugadoraSel = jugadoraId ? jugadoras.find((j) => j.id === jugadoraId) : null
+    const nombreFinal =
+      (jugadoraSel ? `${jugadoraSel.nombre} ${jugadoraSel.apellido}`.trim() : nombre.trim()) || ""
+    if (!nombreFinal) {
+      toast.error("Elegí una jugadora o ingresá un nombre")
+      setLoading(false)
+      return
+    }
+
     const { data, error } = await supabase.rpc("create_parcela_venta_with_parcelas", {
-      p_nombre_apellido: nombre.trim(),
+      p_nombre_apellido: nombreFinal,
       p_precio: parseFloat(precio),
       p_parcela_numeros: parcelasNums.length ? parcelasNums : null,
       p_ubicacion_id: ubicacionId,
@@ -258,10 +267,23 @@ export function ParcelasClient({
       return
     }
 
+    const jugadoraSel = editJugadoraId
+      ? jugadoras.find((j) => j.id === editJugadoraId)
+      : null
+    const nombreFinal =
+      (jugadoraSel
+        ? `${jugadoraSel.nombre} ${jugadoraSel.apellido}`.trim()
+        : editNombre.trim()) || ""
+    if (!nombreFinal) {
+      toast.error("Elegí una jugadora o ingresá un nombre")
+      setSavingEdit(false)
+      return
+    }
+
     const supabase = createClient()
     const { error } = await supabase.rpc("update_parcela_venta_with_parcelas", {
       p_venta_id: editingVenta.id,
-      p_nombre_apellido: editNombre.trim(),
+      p_nombre_apellido: nombreFinal,
       p_precio: parseFloat(editPrecio),
       p_parcela_numeros: parcelasNums.length ? parcelasNums : null,
       p_ubicacion_id: editUbicacionId,
@@ -295,7 +317,7 @@ export function ParcelasClient({
         v.id === editingVenta.id
           ? {
               ...v,
-              nombre_apellido: editNombre.trim(),
+              nombre_apellido: nombreFinal,
               precio: parseFloat(editPrecio),
               ubicacion_id: editUbicacionId,
               ubicacion_nombre: ubNombre,
@@ -396,18 +418,21 @@ export function ParcelasClient({
                   onChange={({ id, nombreCompleto }) => {
                     setJugadoraId(id)
                     if (nombreCompleto) setNombre(nombreCompleto)
+                    else if (!id) setNombre("")
                   }}
                 />
-                <div className="flex flex-col gap-2">
-                  <Label htmlFor="nombre">Nombre y Apellido</Label>
-                  <Input
-                    id="nombre"
-                    placeholder="Ej: Juan Perez"
-                    value={nombre}
-                    onChange={(e) => setNombre(e.target.value)}
-                    required
-                  />
-                </div>
+                {!jugadoraId ? (
+                  <div className="flex flex-col gap-2">
+                    <Label htmlFor="nombre">Nombre y Apellido (si no es jugadora)</Label>
+                    <Input
+                      id="nombre"
+                      placeholder="Ej: Juan Perez"
+                      value={nombre}
+                      onChange={(e) => setNombre(e.target.value)}
+                      required
+                    />
+                  </div>
+                ) : null}
                 <div className="flex flex-col gap-2">
                   <Label htmlFor="precio">Precio (USD)</Label>
                   <div className="relative">
@@ -473,18 +498,21 @@ export function ParcelasClient({
                   onChange={({ id, nombreCompleto }) => {
                     setEditJugadoraId(id)
                     if (nombreCompleto) setEditNombre(nombreCompleto)
+                    else if (!id) setEditNombre("")
                   }}
                 />
-                <div className="flex flex-col gap-2">
-                  <Label htmlFor="edit-nombre">Nombre y Apellido</Label>
-                  <Input
-                    id="edit-nombre"
-                    placeholder="Ej: Juan Perez"
-                    value={editNombre}
-                    onChange={(e) => setEditNombre(e.target.value)}
-                    required
-                  />
-                </div>
+                {!editJugadoraId ? (
+                  <div className="flex flex-col gap-2">
+                    <Label htmlFor="edit-nombre">Nombre y Apellido (si no es jugadora)</Label>
+                    <Input
+                      id="edit-nombre"
+                      placeholder="Ej: Juan Perez"
+                      value={editNombre}
+                      onChange={(e) => setEditNombre(e.target.value)}
+                      required
+                    />
+                  </div>
+                ) : null}
                 <div className="flex flex-col gap-2">
                   <Label htmlFor="edit-precio">Precio (USD)</Label>
                   <div className="relative">

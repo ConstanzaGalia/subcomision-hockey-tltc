@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react"
 import { useRouter } from "next/navigation"
 import { toast } from "sonner"
-import { KeyRound, Pencil, Plus, RefreshCw, Search, UserMinus, UserCheck } from "lucide-react"
+import { KeyRound, Link2, Pencil, Plus, RefreshCw, Search, UserMinus, UserCheck } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardAction, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -65,6 +65,7 @@ import {
   provisionCuentaJugadora,
   syncCuentasJugadoras,
 } from "@/app/dashboard/admin/jugadoras/cuentas-actions"
+import { vincularMovimientosAJugadoras } from "@/app/dashboard/admin/jugadoras/vincular-movimientos-actions"
 
 const SIN_BLOQUE = "sin-bloque"
 
@@ -231,6 +232,7 @@ export function JugadorasClient({
   const [movingId, setMovingId] = useState<string | null>(null)
   const [recalculando, setRecalculando] = useState(false)
   const [sincronizandoCuentas, setSincronizandoCuentas] = useState(false)
+  const [vinculandoMovimientos, setVinculandoMovimientos] = useState(false)
 
   const [bloqueDialog, setBloqueDialog] = useState<"create" | "rename" | null>(null)
   const [bloqueNombre, setBloqueNombre] = useState("")
@@ -387,6 +389,29 @@ export function JugadorasClient({
     router.refresh()
   }
 
+  async function handleVincularMovimientos() {
+    setVinculandoMovimientos(true)
+    const result = await vincularMovimientosAJugadoras()
+    if (!result.ok) {
+      toast.error(result.error)
+      setVinculandoMovimientos(false)
+      return
+    }
+    toast.success(
+      `Rifas ${result.rifas.linked} · Cuotas ${result.cuotas.linked} · Parcelas ${result.parcelas.linked}`,
+      {
+        description:
+          result.unresolvedNames.length > 0
+            ? `Sin match único: ${result.unresolvedNames.slice(0, 5).join(", ")}${
+                result.unresolvedNames.length > 5 ? "…" : ""
+              }`
+            : "Todos los nombres claros quedaron vinculados",
+      },
+    )
+    setVinculandoMovimientos(false)
+    router.refresh()
+  }
+
   async function handleMove(id: string, bloqueId: string | null) {
     const prev = jugadoras
     setMovingId(id)
@@ -507,6 +532,15 @@ export function JugadorasClient({
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
+          <Button
+            type="button"
+            variant="outline"
+            onClick={handleVincularMovimientos}
+            disabled={vinculandoMovimientos}
+          >
+            <Link2 className="mr-2 h-4 w-4" />
+            {vinculandoMovimientos ? "Vinculando..." : "Vincular pagos a jugadoras"}
+          </Button>
           <Button
             type="button"
             variant="outline"

@@ -15,6 +15,10 @@ import {
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { cn } from "@/lib/utils"
 import { formatDni } from "@/lib/categorias"
+import {
+  displayNombreDesdeJugadora,
+  filterJugadorasByQuery,
+} from "@/lib/match-jugadora"
 import type { JugadoraOption } from "@/lib/jugadoras"
 
 export function labelJugadora(j: JugadoraOption): string {
@@ -39,17 +43,29 @@ export function JugadoraSelect({
   optional?: boolean
 }) {
   const [open, setOpen] = useState(false)
+  const [query, setQuery] = useState("")
 
   const selected = useMemo(
     () => (value ? jugadoras.find((j) => j.id === value) ?? null : null),
     [jugadoras, value],
   )
 
+  const filtered = useMemo(
+    () => filterJugadorasByQuery(jugadoras, query).slice(0, 80),
+    [jugadoras, query],
+  )
+
   return (
     <div className="flex flex-col gap-2">
       <Label htmlFor={id}>{label}</Label>
       <div className="flex gap-2">
-        <Popover open={open} onOpenChange={setOpen}>
+        <Popover
+          open={open}
+          onOpenChange={(next) => {
+            setOpen(next)
+            if (!next) setQuery("")
+          }}
+        >
           <PopoverTrigger asChild>
             <Button
               id={id}
@@ -65,27 +81,32 @@ export function JugadoraSelect({
                   ? labelJugadora(selected)
                   : jugadoras.length === 0
                     ? "No hay jugadoras cargadas"
-                    : "Buscar por apellido o DNI…"}
+                    : "Buscar por apellido, nombre o DNI…"}
               </span>
               <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
             </Button>
           </PopoverTrigger>
           <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0" align="start">
-            <Command>
-              <CommandInput placeholder="Apellido, nombre o DNI…" />
+            <Command shouldFilter={false}>
+              <CommandInput
+                placeholder="Ej: galia camila · o DNI"
+                value={query}
+                onValueChange={setQuery}
+              />
               <CommandList>
                 <CommandEmpty>Sin resultados</CommandEmpty>
                 <CommandGroup>
-                  {jugadoras.map((j) => (
+                  {filtered.map((j) => (
                     <CommandItem
                       key={j.id}
-                      value={`${j.apellido} ${j.nombre} ${j.dni} ${formatDni(j.dni)}`}
+                      value={j.id}
                       onSelect={() => {
                         onChange({
                           id: j.id,
-                          nombreCompleto: `${j.nombre} ${j.apellido}`.trim(),
+                          nombreCompleto: displayNombreDesdeJugadora(j),
                         })
                         setOpen(false)
+                        setQuery("")
                       }}
                     >
                       <Check
@@ -115,6 +136,15 @@ export function JugadoraSelect({
           </Button>
         ) : null}
       </div>
+      {selected ? (
+        <p className="text-xs text-muted-foreground">
+          Se guarda como {displayNombreDesdeJugadora(selected)}.
+        </p>
+      ) : (
+        <p className="text-xs text-muted-foreground">
+          Elegí la jugadora para que el movimiento aparezca en su portal.
+        </p>
+      )}
     </div>
   )
 }

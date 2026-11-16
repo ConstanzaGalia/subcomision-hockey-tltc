@@ -32,8 +32,13 @@ export default function LoginPage() {
     })
 
     if (error) {
+      const dniHint =
+        isDniLoginInput(identifier) &&
+        /invalid login credentials/i.test(error.message)
+          ? "Tu cuenta todavía no está activa. Pedile a la subcomisión que pulse “Crear / sincronizar cuentas” en Jugadoras."
+          : error.message
       toast.error("Error al iniciar sesion", {
-        description: error.message,
+        description: dniHint,
       })
       setLoading(false)
       return
