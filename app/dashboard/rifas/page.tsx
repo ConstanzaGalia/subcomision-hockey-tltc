@@ -101,7 +101,7 @@ export default async function RifasPage() {
       id: r.id,
       campana_id: r.campana_id,
       nombre_apellido: r.nombre_apellido,
-      cantidad: r.cantidad,
+      cantidad: Number(r.cantidad) || 0,
       entregado: r.entregado,
       moneda: r.moneda,
       ubicacion_id: r.ubicacion_id,

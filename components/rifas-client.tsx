@@ -184,6 +184,7 @@ export function RifasClient({
   const totals = useMemo(() => {
     let usd = 0
     let ars = 0
+    // Total de boletos/números = suma de "cantidad" por persona (no el nº de filas).
     let rifasCount = 0
     for (const r of rifasDeCampana) {
       rifasCount += Number(r.cantidad) || 0
@@ -191,7 +192,7 @@ export function RifasClient({
       if (r.moneda === "USD") usd += value
       if (r.moneda === "ARS") ars += value
     }
-    return { usd, ars, rifasCount }
+    return { usd, ars, rifasCount, personas: rifasDeCampana.length }
   }, [rifasDeCampana])
 
   async function handleCreateCampana(e: React.FormEvent) {
@@ -709,12 +710,16 @@ export function RifasClient({
             <Card>
               <CardHeader className="flex flex-row items-center justify-between pb-2">
                 <CardTitle className="text-sm font-medium text-muted-foreground">
-                  Números asignados
+                  Rifas asignadas
                 </CardTitle>
                 <Ticket className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold text-foreground">{totals.rifasCount}</div>
+                <p className="text-xs text-muted-foreground">
+                  Suma de cantidades · {totals.personas}{" "}
+                  {totals.personas === 1 ? "persona" : "personas"}
+                </p>
               </CardContent>
             </Card>
             <Card>
