@@ -20,6 +20,7 @@ export async function updateCuotaExtraordinaria(
     fecha: string
     ubicacion_id: string
     cuenta_para_cancha: boolean
+    jugadora_id: string | null
   }
 ): Promise<CuotaExtraordinariaActionResult> {
   const supabase = await createClient()
@@ -52,6 +53,7 @@ export async function updateCuotaExtraordinaria(
         fecha: data.fecha,
         ubicacion_id: data.ubicacion_id,
         cuenta_para_cancha: data.cuenta_para_cancha,
+        jugadora_id: data.jugadora_id,
       })
       .eq("id", cuotaId)
 

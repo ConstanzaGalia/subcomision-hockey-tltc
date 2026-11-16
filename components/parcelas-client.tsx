@@ -40,7 +40,9 @@ import { generateReceipt } from "@/lib/generate-receipt"
 import { deleteParcelaVenta, toggleAnotadaEnCancha } from "@/app/dashboard/parcelas/actions"
 import { Checkbox } from "@/components/ui/checkbox"
 import { UbicacionSelect } from "@/components/ubicacion-select"
+import { JugadoraSelect } from "@/components/jugadora-select"
 import type { UbicacionOption } from "@/lib/ubicaciones"
+import type { JugadoraOption } from "@/lib/jugadoras"
 
 type ParcelaAsignacion = { parcela_numero: number }
 
@@ -53,6 +55,7 @@ interface Venta {
   ubicacion_id: string
   ubicacion_nombre?: string | null
   anotada_en_cancha?: boolean
+  jugadora_id?: string | null
   parcelas_asignaciones?: ParcelaAsignacion[] | null
 }
 
@@ -60,14 +63,17 @@ export function ParcelasClient({
   initialVentas,
   ubicaciones,
   defaultUbicacionId,
+  jugadoras,
 }: {
   initialVentas: Venta[]
   ubicaciones: UbicacionOption[]
   defaultUbicacionId: string
+  jugadoras: JugadoraOption[]
 }) {
   const [ventas, setVentas] = useState<Venta[]>(initialVentas)
   const [open, setOpen] = useState(false)
   const [nombre, setNombre] = useState("")
+  const [jugadoraId, setJugadoraId] = useState<string | null>(null)
   const [precio, setPrecio] = useState("")
   const [parcelasCsv, setParcelasCsv] = useState("")
   const [ubicacionId, setUbicacionId] = useState(defaultUbicacionId)
@@ -75,6 +81,7 @@ export function ParcelasClient({
   const [openEdit, setOpenEdit] = useState(false)
   const [editingVenta, setEditingVenta] = useState<Venta | null>(null)
   const [editNombre, setEditNombre] = useState("")
+  const [editJugadoraId, setEditJugadoraId] = useState<string | null>(null)
   const [editPrecio, setEditPrecio] = useState("")
   const [editParcelasCsv, setEditParcelasCsv] = useState("")
   const [editUbicacionId, setEditUbicacionId] = useState("")
@@ -180,14 +187,28 @@ export function ParcelasClient({
     }
 
     const ventaRow = data as unknown as Venta
+    if (ventaRow?.id) {
+      const { error: linkError } = await supabase
+        .from("parcelas_ventas")
+        .update({ jugadora_id: jugadoraId })
+        .eq("id", ventaRow.id)
+      if (linkError) {
+        toast.error("Venta creada, pero no se pudo vincular la jugadora", {
+          description: linkError.message,
+        })
+      }
+    }
+
     const ubNombre = ubicaciones.find((u) => u.id === ubicacionId)?.nombre ?? null
     const enriched: Venta = {
       ...ventaRow,
       ubicacion_nombre: ubNombre,
+      jugadora_id: jugadoraId,
       parcelas_asignaciones: parcelasNums.map((n) => ({ parcela_numero: n })),
     }
     setVentas([enriched, ...ventas])
     setNombre("")
+    setJugadoraId(null)
     setPrecio("")
     setParcelasCsv("")
     setUbicacionId(defaultUbicacionId)
@@ -211,6 +232,7 @@ export function ParcelasClient({
   function openEditDialog(venta: Venta) {
     setEditingVenta(venta)
     setEditNombre(venta.nombre_apellido)
+    setEditJugadoraId(venta.jugadora_id ?? null)
     setEditPrecio(String(venta.precio))
     setEditParcelasCsv(getParcelasList(venta).join(","))
     setEditUbicacionId(venta.ubicacion_id || defaultUbicacionId)
@@ -257,6 +279,16 @@ export function ParcelasClient({
       return
     }
 
+    const { error: linkError } = await supabase
+      .from("parcelas_ventas")
+      .update({ jugadora_id: editJugadoraId })
+      .eq("id", editingVenta.id)
+    if (linkError) {
+      toast.error("Venta actualizada, pero no se pudo vincular la jugadora", {
+        description: linkError.message,
+      })
+    }
+
     const ubNombre = ubicaciones.find((u) => u.id === editUbicacionId)?.nombre ?? null
     setVentas((prev) =>
       prev.map((v) =>
@@ -267,6 +299,7 @@ export function ParcelasClient({
               precio: parseFloat(editPrecio),
               ubicacion_id: editUbicacionId,
               ubicacion_nombre: ubNombre,
+              jugadora_id: editJugadoraId,
               parcelas_asignaciones: parcelasNums.map((n) => ({ parcela_numero: n })),
             }
           : v
@@ -335,7 +368,10 @@ export function ParcelasClient({
           open={open}
           onOpenChange={(o) => {
             setOpen(o)
-            if (o) setUbicacionId(defaultUbicacionId)
+            if (o) {
+              setUbicacionId(defaultUbicacionId)
+              setJugadoraId(null)
+            }
           }}
         >
           <DialogTrigger asChild>
@@ -353,6 +389,15 @@ export function ParcelasClient({
                 </DialogDescription>
               </DialogHeader>
               <div className="flex flex-col gap-4 py-4">
+                <JugadoraSelect
+                  id="parcela-jugadora"
+                  value={jugadoraId}
+                  jugadoras={jugadoras}
+                  onChange={({ id, nombreCompleto }) => {
+                    setJugadoraId(id)
+                    if (nombreCompleto) setNombre(nombreCompleto)
+                  }}
+                />
                 <div className="flex flex-col gap-2">
                   <Label htmlFor="nombre">Nombre y Apellido</Label>
                   <Input
@@ -421,6 +466,15 @@ export function ParcelasClient({
                 </DialogDescription>
               </DialogHeader>
               <div className="flex flex-col gap-4 py-4">
+                <JugadoraSelect
+                  id="edit-parcela-jugadora"
+                  value={editJugadoraId}
+                  jugadoras={jugadoras}
+                  onChange={({ id, nombreCompleto }) => {
+                    setEditJugadoraId(id)
+                    if (nombreCompleto) setEditNombre(nombreCompleto)
+                  }}
+                />
                 <div className="flex flex-col gap-2">
                   <Label htmlFor="edit-nombre">Nombre y Apellido</Label>
                   <Input

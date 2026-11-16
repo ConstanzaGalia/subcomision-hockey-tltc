@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react"
 import { useRouter } from "next/navigation"
 import { toast } from "sonner"
-import { Pencil, Plus, RefreshCw, Search, UserMinus, UserCheck } from "lucide-react"
+import { KeyRound, Pencil, Plus, RefreshCw, Search, UserMinus, UserCheck } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardAction, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -61,6 +61,10 @@ import {
   setJugadoraActiva,
   updateJugadora,
 } from "@/app/dashboard/admin/jugadoras/actions"
+import {
+  provisionCuentaJugadora,
+  syncCuentasJugadoras,
+} from "@/app/dashboard/admin/jugadoras/cuentas-actions"
 
 const SIN_BLOQUE = "sin-bloque"
 
@@ -226,6 +230,7 @@ export function JugadorasClient({
   const [saving, setSaving] = useState(false)
   const [movingId, setMovingId] = useState<string | null>(null)
   const [recalculando, setRecalculando] = useState(false)
+  const [sincronizandoCuentas, setSincronizandoCuentas] = useState(false)
 
   const [bloqueDialog, setBloqueDialog] = useState<"create" | "rename" | null>(null)
   const [bloqueNombre, setBloqueNombre] = useState("")
@@ -343,7 +348,42 @@ export function JugadorasClient({
     setBloqueVista(result.data.bloque_id ?? SIN_BLOQUE)
     setFormOpen(false)
     toast.success(editing ? "Jugadora actualizada" : "Jugadora agregada")
+
+    if (!editing) {
+      const cuenta = await provisionCuentaJugadora(result.data.id)
+      if (!cuenta.ok) {
+        toast.message("Jugadora guardada, pero no se pudo crear el login", {
+          description: cuenta.error,
+        })
+      }
+    }
+
     setSaving(false)
+    router.refresh()
+  }
+
+  async function handleSyncCuentas() {
+    setSincronizandoCuentas(true)
+    const result = await syncCuentasJugadoras()
+    if (!result.ok) {
+      toast.error(result.error)
+      setSincronizandoCuentas(false)
+      return
+    }
+    const detalle = [
+      result.created ? `${result.created} creadas` : null,
+      result.linked ? `${result.linked} vinculadas` : null,
+      result.skipped ? `${result.skipped} omitidas` : null,
+    ]
+      .filter(Boolean)
+      .join(" · ")
+    toast.success(detalle || "Sin cambios", {
+      description:
+        result.errors.length > 0
+          ? result.errors.slice(0, 3).join(" · ")
+          : "Login: usuario y contraseña = DNI",
+    })
+    setSincronizandoCuentas(false)
     router.refresh()
   }
 
@@ -467,6 +507,15 @@ export function JugadorasClient({
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
+          <Button
+            type="button"
+            variant="outline"
+            onClick={handleSyncCuentas}
+            disabled={sincronizandoCuentas}
+          >
+            <KeyRound className="mr-2 h-4 w-4" />
+            {sincronizandoCuentas ? "Sincronizando..." : "Crear / sincronizar cuentas"}
+          </Button>
           <Button
             type="button"
             variant="outline"

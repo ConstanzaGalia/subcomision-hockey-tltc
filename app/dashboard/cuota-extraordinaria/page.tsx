@@ -4,6 +4,7 @@ import type { UserRole } from "@/lib/roles"
 import { hasAccess } from "@/lib/roles"
 import { CuotaExtraordinariaClient } from "@/components/cuota-extraordinaria-client"
 import { defaultUbicacionId, type UbicacionOption } from "@/lib/ubicaciones"
+import type { JugadoraOption } from "@/lib/jugadoras"
 
 export default async function CuotaExtraordinariaPage() {
   const supabase = await createClient()
@@ -45,6 +46,15 @@ export default async function CuotaExtraordinariaPage() {
     console.error("Error cargando cuota_extraordinaria:", cuotasError.message)
   }
 
+  const { data: jugadorasRaw } = await supabase
+    .from("jugadoras")
+    .select("id, apellido, nombre, dni")
+    .eq("activa", true)
+    .order("apellido", { ascending: true })
+    .order("nombre", { ascending: true })
+
+  const jugadoras: JugadoraOption[] = (jugadorasRaw ?? []) as JugadoraOption[]
+
   const cuotaRows = (cuotas ?? []) as Array<{
     id: string
     nombre_apellido: string
@@ -55,6 +65,7 @@ export default async function CuotaExtraordinariaPage() {
     created_at: string
     user_id: string
     ubicacion_id: string
+    jugadora_id?: string | null
     ubicaciones?: { nombre: string } | null
     recibo_generado_por?: string | null
   }>
@@ -88,6 +99,7 @@ export default async function CuotaExtraordinariaPage() {
         initialCuotas={cuotasEnriquecidas as any}
         ubicaciones={ubicaciones}
         defaultUbicacionId={ubicacionDefaultId}
+        jugadoras={jugadoras}
       />
     </div>
   )

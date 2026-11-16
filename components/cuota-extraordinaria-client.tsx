@@ -50,8 +50,10 @@ import {
   updateCuotaExtraordinaria,
 } from "@/app/dashboard/cuota-extraordinaria/actions"
 import { UbicacionSelect } from "@/components/ubicacion-select"
+import { JugadoraSelect } from "@/components/jugadora-select"
 import { Checkbox } from "@/components/ui/checkbox"
 import type { UbicacionOption } from "@/lib/ubicaciones"
+import type { JugadoraOption } from "@/lib/jugadoras"
 
 type Moneda = "USD" | "ARS"
 type MetodoPago = "EFECTIVO" | "TRANSFERENCIA"
@@ -68,6 +70,7 @@ export type CuotaExtraordinariaRow = {
   ubicacion_id: string
   ubicacion_nombre?: string | null
   cuenta_para_cancha?: boolean
+  jugadora_id?: string | null
   recibo_generado_por_nombre_apellido?: string | null
   recibo_generado_por?: string | null
 }
@@ -95,16 +98,19 @@ export function CuotaExtraordinariaClient({
   initialCuotas,
   ubicaciones,
   defaultUbicacionId,
+  jugadoras,
 }: {
   initialCuotas: CuotaExtraordinariaRow[]
   ubicaciones: UbicacionOption[]
   defaultUbicacionId: string
+  jugadoras: JugadoraOption[]
 }) {
   const [cuotas, setCuotas] = useState<CuotaExtraordinariaRow[]>(initialCuotas)
   const router = useRouter()
 
   const [openCreate, setOpenCreate] = useState(false)
   const [nombre, setNombre] = useState("")
+  const [jugadoraId, setJugadoraId] = useState<string | null>(null)
   const [moneda, setMoneda] = useState<Moneda>("USD")
   const [metodoPago, setMetodoPago] = useState<MetodoPago>("EFECTIVO")
   const [monto, setMonto] = useState("")
@@ -116,6 +122,7 @@ export function CuotaExtraordinariaClient({
   const [openEdit, setOpenEdit] = useState(false)
   const [editingCuota, setEditingCuota] = useState<CuotaExtraordinariaRow | null>(null)
   const [editNombre, setEditNombre] = useState("")
+  const [editJugadoraId, setEditJugadoraId] = useState<string | null>(null)
   const [editMoneda, setEditMoneda] = useState<Moneda>("USD")
   const [editMetodoPago, setEditMetodoPago] = useState<MetodoPago>("EFECTIVO")
   const [editMonto, setEditMonto] = useState("")
@@ -181,6 +188,7 @@ export function CuotaExtraordinariaClient({
         user_id: user.id,
         ubicacion_id: ubicacionId,
         cuenta_para_cancha: cuentaParaCancha,
+        jugadora_id: jugadoraId,
       })
       .select()
       .single()
@@ -197,12 +205,14 @@ export function CuotaExtraordinariaClient({
         ...(data as CuotaExtraordinariaRow),
         ubicacion_nombre: ubNombre,
         recibo_generado_por_nombre_apellido: null,
+        jugadora_id: jugadoraId,
       },
       ...prev,
     ])
 
     setOpenCreate(false)
     setNombre("")
+    setJugadoraId(null)
     setMoneda("USD")
     setMetodoPago("EFECTIVO")
     setMonto("")
@@ -217,6 +227,7 @@ export function CuotaExtraordinariaClient({
   function openEditDialog(c: CuotaExtraordinariaRow) {
     setEditingCuota(c)
     setEditNombre(c.nombre_apellido)
+    setEditJugadoraId(c.jugadora_id ?? null)
     setEditMoneda(c.moneda)
     setEditMetodoPago(c.metodo_pago)
     setEditMonto(String(c.monto))
@@ -254,6 +265,7 @@ export function CuotaExtraordinariaClient({
       fecha: editFecha,
       ubicacion_id: editUbicacionId,
       cuenta_para_cancha: editCuentaParaCancha,
+      jugadora_id: editJugadoraId,
     })
 
     if (!result.ok) {
@@ -276,6 +288,7 @@ export function CuotaExtraordinariaClient({
               ubicacion_id: editUbicacionId,
               ubicacion_nombre: ubNombre,
               cuenta_para_cancha: editCuentaParaCancha,
+              jugadora_id: editJugadoraId,
             }
           : x,
       ),
@@ -375,7 +388,10 @@ export function CuotaExtraordinariaClient({
           open={openCreate}
           onOpenChange={(o) => {
             setOpenCreate(o)
-            if (o) setUbicacionId(defaultUbicacionId)
+            if (o) {
+              setUbicacionId(defaultUbicacionId)
+              setJugadoraId(null)
+            }
           }}
         >
           <DialogTrigger asChild>
@@ -391,6 +407,15 @@ export function CuotaExtraordinariaClient({
                 <DialogDescription>Registrá un ingreso de cuota extraordinaria.</DialogDescription>
               </DialogHeader>
               <div className="flex flex-col gap-4 py-4">
+                <JugadoraSelect
+                  id="cuota-jugadora"
+                  value={jugadoraId}
+                  jugadoras={jugadoras}
+                  onChange={({ id, nombreCompleto }) => {
+                    setJugadoraId(id)
+                    if (nombreCompleto) setNombre(nombreCompleto)
+                  }}
+                />
                 <div className="flex flex-col gap-2">
                   <Label htmlFor="nombre">Nombre y Apellido</Label>
                   <Input
@@ -583,6 +608,15 @@ export function CuotaExtraordinariaClient({
               <DialogDescription>Corrige nombre, moneda, monto o fecha.</DialogDescription>
             </DialogHeader>
             <div className="flex flex-col gap-4 py-4">
+              <JugadoraSelect
+                id="edit-cuota-jugadora"
+                value={editJugadoraId}
+                jugadoras={jugadoras}
+                onChange={({ id, nombreCompleto }) => {
+                  setEditJugadoraId(id)
+                  if (nombreCompleto) setEditNombre(nombreCompleto)
+                }}
+              />
               <div className="flex flex-col gap-2">
                 <Label htmlFor="edit-nombre">Nombre y Apellido</Label>
                 <Input

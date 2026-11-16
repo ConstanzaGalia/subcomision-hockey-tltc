@@ -9,6 +9,7 @@ import {
   type RifaRow,
 } from "@/components/rifas-client"
 import { defaultUbicacionId, type UbicacionOption } from "@/lib/ubicaciones"
+import type { JugadoraOption } from "@/lib/jugadoras"
 
 export default async function RifasPage() {
   const supabase = await createClient()
@@ -50,12 +51,22 @@ export default async function RifasPage() {
     console.error("Error cargando rifas_campanas:", campanasError.message)
   }
 
+  const { data: jugadorasRaw } = await supabase
+    .from("jugadoras")
+    .select("id, apellido, nombre, dni")
+    .eq("activa", true)
+    .order("apellido", { ascending: true })
+    .order("nombre", { ascending: true })
+
+  const jugadoras: JugadoraOption[] = (jugadorasRaw ?? []) as JugadoraOption[]
+
   const campanas: RifaCampanaRow[] = ((campanasRaw ?? []) as Array<{
     id: string
     nombre: string
     descripcion: string | null
     activa: boolean
     cuenta_para_cancha: boolean
+    precio_unitario?: number | null
     created_at: string
     user_id: string
   }>).map((c) => ({
@@ -64,6 +75,7 @@ export default async function RifasPage() {
     descripcion: c.descripcion,
     activa: c.activa,
     cuenta_para_cancha: c.cuenta_para_cancha ?? true,
+    precio_unitario: c.precio_unitario != null ? Number(c.precio_unitario) : null,
     created_at: c.created_at,
     user_id: c.user_id,
   }))
@@ -88,6 +100,7 @@ export default async function RifasPage() {
     fecha: string
     created_at: string
     user_id: string
+    jugadora_id?: string | null
     ubicaciones?: { nombre: string } | null
     rifas_pagos?: RifaPagoRow[] | null
   }>).map((r) => {
@@ -109,6 +122,7 @@ export default async function RifasPage() {
       fecha: r.fecha,
       created_at: r.created_at,
       user_id: r.user_id,
+      jugadora_id: r.jugadora_id ?? null,
       pagos,
       rendimiento,
     }
@@ -128,6 +142,7 @@ export default async function RifasPage() {
         initialRifas={rifas}
         ubicaciones={ubicaciones}
         defaultUbicacionId={ubicacionDefaultId}
+        jugadoras={jugadoras}
       />
     </div>
   )

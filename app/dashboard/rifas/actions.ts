@@ -39,6 +39,7 @@ export async function updateRifaCampana(
     descripcion: string | null
     activa: boolean
     cuenta_para_cancha: boolean
+    precio_unitario: number | null
   }
 ): Promise<RifasActionResult> {
   const auth = await requireRifasManager()
@@ -53,6 +54,7 @@ export async function updateRifaCampana(
         descripcion: data.descripcion?.trim() ? data.descripcion.trim() : null,
         activa: data.activa,
         cuenta_para_cancha: data.cuenta_para_cancha,
+        precio_unitario: data.precio_unitario,
       })
       .eq("id", campanaId)
 
@@ -89,6 +91,7 @@ export async function updateRifa(
     ubicacion_id: string
     fecha: string
     campana_id: string
+    jugadora_id: string | null
   }
 ): Promise<RifasActionResult> {
   const auth = await requireRifasManager()
@@ -106,6 +109,7 @@ export async function updateRifa(
         ubicacion_id: data.ubicacion_id,
         fecha: data.fecha,
         campana_id: data.campana_id,
+        jugadora_id: data.jugadora_id,
       })
       .eq("id", rifaId)
 

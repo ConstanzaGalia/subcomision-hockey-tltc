@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation"
 import { createClient } from "@/lib/supabase/server"
 import { DashboardSidebar } from "@/components/dashboard-sidebar"
-import type { UserRole } from "@/lib/roles"
+import { isJugadoraRole, type UserRole } from "@/lib/roles"
 
 export default async function DashboardLayout({
   children,
@@ -25,6 +25,10 @@ export default async function DashboardLayout({
     .single()
 
   const userRole: UserRole = (profile?.role as UserRole) ?? "ENTRENADOR"
+  if (isJugadoraRole(userRole)) {
+    redirect("/portal")
+  }
+
   const userName = ([profile?.nombre, profile?.apellido].filter(Boolean).join(" ").trim() || user.email) ?? ""
 
   return (

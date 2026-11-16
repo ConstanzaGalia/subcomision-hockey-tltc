@@ -53,7 +53,9 @@ import {
   updateRifaCampana,
 } from "@/app/dashboard/rifas/actions"
 import { UbicacionSelect } from "@/components/ubicacion-select"
+import { JugadoraSelect } from "@/components/jugadora-select"
 import type { UbicacionOption } from "@/lib/ubicaciones"
+import type { JugadoraOption } from "@/lib/jugadoras"
 import { cn } from "@/lib/utils"
 
 type Moneda = "USD" | "ARS"
@@ -64,6 +66,7 @@ export type RifaCampanaRow = {
   descripcion: string | null
   activa: boolean
   cuenta_para_cancha: boolean
+  precio_unitario: number | null
   created_at: string
   user_id: string
 }
@@ -88,6 +91,7 @@ export type RifaRow = {
   fecha: string
   created_at: string
   user_id: string
+  jugadora_id?: string | null
   pagos: RifaPagoRow[]
   rendimiento: number
 }
@@ -116,11 +120,13 @@ export function RifasClient({
   initialRifas,
   ubicaciones,
   defaultUbicacionId,
+  jugadoras,
 }: {
   initialCampanas: RifaCampanaRow[]
   initialRifas: RifaRow[]
   ubicaciones: UbicacionOption[]
   defaultUbicacionId: string
+  jugadoras: JugadoraOption[]
 }) {
   const [campanas, setCampanas] = useState<RifaCampanaRow[]>(initialCampanas)
   const [rifas, setRifas] = useState<RifaRow[]>(initialRifas)
@@ -139,6 +145,7 @@ export function RifasClient({
   const [campanaNombre, setCampanaNombre] = useState("")
   const [campanaDesc, setCampanaDesc] = useState("")
   const [campanaCuentaCancha, setCampanaCuentaCancha] = useState(true)
+  const [campanaPrecio, setCampanaPrecio] = useState("")
   const [creatingCampana, setCreatingCampana] = useState(false)
 
   const [openEditCampana, setOpenEditCampana] = useState(false)
@@ -146,6 +153,7 @@ export function RifasClient({
   const [editCampanaDesc, setEditCampanaDesc] = useState("")
   const [editCampanaActiva, setEditCampanaActiva] = useState(true)
   const [editCampanaCuentaCancha, setEditCampanaCuentaCancha] = useState(true)
+  const [editCampanaPrecio, setEditCampanaPrecio] = useState("")
   const [savingCampana, setSavingCampana] = useState(false)
 
   const [openDeleteCampana, setOpenDeleteCampana] = useState(false)
@@ -153,6 +161,7 @@ export function RifasClient({
 
   const [openCreate, setOpenCreate] = useState(false)
   const [nombre, setNombre] = useState("")
+  const [jugadoraId, setJugadoraId] = useState<string | null>(null)
   const [cantidad, setCantidad] = useState("")
   const [moneda, setMoneda] = useState<Moneda>("ARS")
   const [fecha, setFecha] = useState(todayISODate())
@@ -163,6 +172,7 @@ export function RifasClient({
   const [openEdit, setOpenEdit] = useState(false)
   const [editing, setEditing] = useState<RifaRow | null>(null)
   const [editNombre, setEditNombre] = useState("")
+  const [editJugadoraId, setEditJugadoraId] = useState<string | null>(null)
   const [editCantidad, setEditCantidad] = useState("")
   const [editMoneda, setEditMoneda] = useState<Moneda>("ARS")
   const [editFecha, setEditFecha] = useState(todayISODate())
@@ -184,15 +194,13 @@ export function RifasClient({
   const totals = useMemo(() => {
     let usd = 0
     let ars = 0
-    // Total de boletos/números = suma de "cantidad" por persona (no el nº de filas).
-    let rifasCount = 0
     for (const r of rifasDeCampana) {
-      rifasCount += Number(r.cantidad) || 0
       const value = Number(r.rendimiento) || 0
       if (r.moneda === "USD") usd += value
       if (r.moneda === "ARS") ars += value
     }
-    return { usd, ars, rifasCount, personas: rifasDeCampana.length }
+    // Cantidad de rifas asignadas = cuántas asignaciones hay (no sumar el Nº cargado).
+    return { usd, ars, rifasCount: rifasDeCampana.length }
   }, [rifasDeCampana])
 
   async function handleCreateCampana(e: React.FormEvent) {
@@ -212,6 +220,14 @@ export function RifasClient({
       return
     }
 
+    const precioTrim = campanaPrecio.trim()
+    const precioNum = precioTrim === "" ? null : Number.parseFloat(precioTrim)
+    if (precioNum != null && (!Number.isFinite(precioNum) || precioNum < 0)) {
+      toast.error("Ingresá un precio por rifa válido")
+      setCreatingCampana(false)
+      return
+    }
+
     const { data, error } = await supabase
       .from("rifas_campanas")
       .insert({
@@ -219,6 +235,7 @@ export function RifasClient({
         descripcion: campanaDesc.trim() ? campanaDesc.trim() : null,
         activa: true,
         cuenta_para_cancha: campanaCuentaCancha,
+        precio_unitario: precioNum,
         user_id: user.id,
       })
       .select()
@@ -231,12 +248,20 @@ export function RifasClient({
     }
 
     const campana = data as RifaCampanaRow
-    setCampanas((prev) => [campana, ...prev])
+    setCampanas((prev) => [
+      {
+        ...campana,
+        precio_unitario:
+          campana.precio_unitario != null ? Number(campana.precio_unitario) : null,
+      },
+      ...prev,
+    ])
     setSelectedCampanaId(campana.id)
     setOpenCreateCampana(false)
     setCampanaNombre("")
     setCampanaDesc("")
     setCampanaCuentaCancha(true)
+    setCampanaPrecio("")
     setCreatingCampana(false)
     toast.success("Rifa creada")
     router.refresh()
@@ -248,6 +273,9 @@ export function RifasClient({
     setEditCampanaDesc(selectedCampana.descripcion ?? "")
     setEditCampanaActiva(selectedCampana.activa)
     setEditCampanaCuentaCancha(selectedCampana.cuenta_para_cancha ?? true)
+    setEditCampanaPrecio(
+      selectedCampana.precio_unitario != null ? String(selectedCampana.precio_unitario) : "",
+    )
     setOpenEditCampana(true)
   }
 
@@ -258,12 +286,19 @@ export function RifasClient({
       toast.error("Ingresá un nombre")
       return
     }
+    const precioTrim = editCampanaPrecio.trim()
+    const precioNum = precioTrim === "" ? null : Number.parseFloat(precioTrim)
+    if (precioNum != null && (!Number.isFinite(precioNum) || precioNum < 0)) {
+      toast.error("Ingresá un precio por rifa válido")
+      return
+    }
     setSavingCampana(true)
     const result = await updateRifaCampana(selectedCampana.id, {
       nombre: editCampanaNombre.trim(),
       descripcion: editCampanaDesc.trim() ? editCampanaDesc.trim() : null,
       activa: editCampanaActiva,
       cuenta_para_cancha: editCampanaCuentaCancha,
+      precio_unitario: precioNum,
     })
     if (!result.ok) {
       toast.error("Error al actualizar", { description: result.error })
@@ -279,6 +314,7 @@ export function RifasClient({
               descripcion: editCampanaDesc.trim() ? editCampanaDesc.trim() : null,
               activa: editCampanaActiva,
               cuenta_para_cancha: editCampanaCuentaCancha,
+              precio_unitario: precioNum,
             }
           : c,
       ),
@@ -351,6 +387,7 @@ export function RifasClient({
         entregado,
         ubicacion_id: ubicacionId,
         user_id: user.id,
+        jugadora_id: jugadoraId,
       })
       .select()
       .single()
@@ -367,6 +404,7 @@ export function RifasClient({
         ...(data as Omit<RifaRow, "pagos" | "rendimiento" | "ubicacion_nombre">),
         campana_id: selectedCampanaId,
         ubicacion_nombre: ubNombre,
+        jugadora_id: jugadoraId,
         pagos: [],
         rendimiento: 0,
       },
@@ -375,6 +413,7 @@ export function RifasClient({
 
     setOpenCreate(false)
     setNombre("")
+    setJugadoraId(null)
     setCantidad("")
     setMoneda("ARS")
     setFecha(todayISODate())
@@ -388,6 +427,7 @@ export function RifasClient({
   function openEditDialog(r: RifaRow) {
     setEditing(r)
     setEditNombre(r.nombre_apellido)
+    setEditJugadoraId(r.jugadora_id ?? null)
     setEditCantidad(String(r.cantidad))
     setEditMoneda(r.moneda)
     setEditFecha(r.fecha)
@@ -418,6 +458,7 @@ export function RifasClient({
       ubicacion_id: editUbicacionId,
       fecha: editFecha,
       campana_id: editing.campana_id,
+      jugadora_id: editJugadoraId,
     })
     if (!result.ok) {
       toast.error("Error al actualizar", { description: result.error })
@@ -438,6 +479,7 @@ export function RifasClient({
               ubicacion_id: editUbicacionId,
               ubicacion_nombre: ubNombre,
               fecha: editFecha,
+              jugadora_id: editJugadoraId,
             }
           : x,
       ),
@@ -648,6 +690,18 @@ export function RifasClient({
                       onChange={(e) => setCampanaDesc(e.target.value)}
                     />
                   </div>
+                  <div className="flex flex-col gap-2">
+                    <Label htmlFor="campana-precio">Precio por rifa (opcional)</Label>
+                    <Input
+                      id="campana-precio"
+                      type="number"
+                      min="0"
+                      step="0.01"
+                      placeholder="Para calcular deuda en el portal"
+                      value={campanaPrecio}
+                      onChange={(e) => setCampanaPrecio(e.target.value)}
+                    />
+                  </div>
                   <div className="flex items-start gap-2">
                     <Checkbox
                       id="campana-cuenta-cancha"
@@ -693,6 +747,9 @@ export function RifasClient({
             {(selectedCampana.cuenta_para_cancha ?? true)
               ? "Esta rifa cuenta para la cancha."
               : "Esta rifa no suma al avance de la cancha."}
+            {selectedCampana.precio_unitario != null
+              ? ` · Precio por rifa: ${Number(selectedCampana.precio_unitario).toLocaleString("es-AR")}`
+              : " · Sin precio (sin deuda en portal)"}
             {!selectedCampana.activa ? " · Inactiva" : ""}
           </span>
         </div>
@@ -717,8 +774,7 @@ export function RifasClient({
               <CardContent>
                 <div className="text-2xl font-bold text-foreground">{totals.rifasCount}</div>
                 <p className="text-xs text-muted-foreground">
-                  Suma de cantidades · {totals.personas}{" "}
-                  {totals.personas === 1 ? "persona" : "personas"}
+                  {totals.rifasCount === 1 ? "asignación" : "asignaciones"}
                 </p>
               </CardContent>
             </Card>
@@ -756,7 +812,10 @@ export function RifasClient({
               open={openCreate}
               onOpenChange={(o) => {
                 setOpenCreate(o)
-                if (o) setUbicacionId(defaultUbicacionId)
+                if (o) {
+                  setUbicacionId(defaultUbicacionId)
+                  setJugadoraId(null)
+                }
               }}
             >
               <DialogTrigger asChild>
@@ -774,6 +833,15 @@ export function RifasClient({
                     </DialogDescription>
                   </DialogHeader>
                   <div className="flex flex-col gap-4 py-4">
+                    <JugadoraSelect
+                      id="rifa-jugadora"
+                      value={jugadoraId}
+                      jugadoras={jugadoras}
+                      onChange={({ id, nombreCompleto }) => {
+                        setJugadoraId(id)
+                        if (nombreCompleto) setNombre(nombreCompleto)
+                      }}
+                    />
                     <div className="flex flex-col gap-2">
                       <Label htmlFor="rifa-nombre">Nombre y apellido</Label>
                       <Input
@@ -963,6 +1031,18 @@ export function RifasClient({
                   onChange={(e) => setEditCampanaDesc(e.target.value)}
                 />
               </div>
+              <div className="flex flex-col gap-2">
+                <Label htmlFor="edit-campana-precio">Precio por rifa (opcional)</Label>
+                <Input
+                  id="edit-campana-precio"
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  placeholder="Para calcular deuda en el portal"
+                  value={editCampanaPrecio}
+                  onChange={(e) => setEditCampanaPrecio(e.target.value)}
+                />
+              </div>
               <div className="flex items-start gap-2">
                 <Checkbox
                   id="edit-campana-activa"
@@ -1003,6 +1083,15 @@ export function RifasClient({
               <DialogTitle>Editar asignación</DialogTitle>
             </DialogHeader>
             <div className="flex flex-col gap-4 py-4">
+              <JugadoraSelect
+                id="edit-rifa-jugadora"
+                value={editJugadoraId}
+                jugadoras={jugadoras}
+                onChange={({ id, nombreCompleto }) => {
+                  setEditJugadoraId(id)
+                  if (nombreCompleto) setEditNombre(nombreCompleto)
+                }}
+              />
               <div className="flex flex-col gap-2">
                 <Label htmlFor="edit-rifa-nombre">Nombre y apellido</Label>
                 <Input

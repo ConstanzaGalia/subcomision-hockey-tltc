@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server"
 import { ParcelasClient } from "@/components/parcelas-client"
 import { hasAccess, type UserRole } from "@/lib/roles"
 import { defaultUbicacionId, type UbicacionOption } from "@/lib/ubicaciones"
+import type { JugadoraOption } from "@/lib/jugadoras"
 
 export default async function ParcelasPage() {
   const supabase = await createClient()
@@ -74,6 +75,15 @@ export default async function ParcelasPage() {
     }
   })
 
+  const { data: jugadorasRaw } = await supabase
+    .from("jugadoras")
+    .select("id, apellido, nombre, dni")
+    .eq("activa", true)
+    .order("apellido", { ascending: true })
+    .order("nombre", { ascending: true })
+
+  const jugadoras: JugadoraOption[] = (jugadorasRaw ?? []) as JugadoraOption[]
+
   return (
     <div className="mx-auto max-w-5xl">
       <div className="mb-6">
@@ -86,6 +96,7 @@ export default async function ParcelasPage() {
         initialVentas={ventasEnriquecidas as any}
         ubicaciones={ubicaciones}
         defaultUbicacionId={ubicacionDefaultId}
+        jugadoras={jugadoras}
       />
     </div>
   )

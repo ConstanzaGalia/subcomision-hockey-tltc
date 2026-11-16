@@ -25,6 +25,15 @@ export type JugadoraRow = {
   division_manual: boolean
   bloque_id: string | null
   activa: boolean
+  cuenta_user_id?: string | null
+}
+
+/** Opción liviana para selects de vinculación en cuota / rifas / parcelas. */
+export type JugadoraOption = {
+  id: string
+  apellido: string
+  nombre: string
+  dni: string
 }
 
 export type JugadoraInput = {

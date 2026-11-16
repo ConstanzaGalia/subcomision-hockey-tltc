@@ -11,9 +11,11 @@ import { PasswordInput } from "@/components/ui/password-input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { toast } from "sonner"
+import { homePathForRole } from "@/lib/roles"
+import { isDniLoginInput, loginIdentifierToEmail } from "@/lib/jugadora-auth"
 
 export default function LoginPage() {
-  const [email, setEmail] = useState("")
+  const [identifier, setIdentifier] = useState("")
   const [password, setPassword] = useState("")
   const [loading, setLoading] = useState(false)
   const router = useRouter()
@@ -22,6 +24,7 @@ export default function LoginPage() {
     e.preventDefault()
     setLoading(true)
 
+    const email = loginIdentifierToEmail(identifier)
     const supabase = createClient()
     const { error } = await supabase.auth.signInWithPassword({
       email,
@@ -36,10 +39,27 @@ export default function LoginPage() {
       return
     }
 
+    const {
+      data: { user },
+    } = await supabase.auth.getUser()
+
+    let role: string | null = null
+    if (user) {
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("role")
+        .eq("id", user.id)
+        .maybeSingle()
+      role = profile?.role ?? null
+    }
+
     toast.success("Sesion iniciada correctamente")
-    router.push("/dashboard")
+    router.push(homePathForRole(role))
     router.refresh()
+    setLoading(false)
   }
+
+  const dniMode = isDniLoginInput(identifier)
 
   return (
     <main className="flex min-h-screen items-center justify-center bg-background px-4">
@@ -60,21 +80,28 @@ export default function LoginPage() {
         <form onSubmit={handleLogin}>
           <CardContent className="flex flex-col gap-4">
             <div className="flex flex-col gap-2">
-              <Label htmlFor="email">Email</Label>
+              <Label htmlFor="identifier">DNI o email</Label>
               <Input
-                id="email"
-                type="email"
-                placeholder="tu@email.com"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                id="identifier"
+                type="text"
+                inputMode="email"
+                autoComplete="username"
+                placeholder={dniMode ? "Tu DNI" : "tu@email.com o DNI"}
+                value={identifier}
+                onChange={(e) => setIdentifier(e.target.value)}
                 required
               />
+              {dniMode ? (
+                <p className="text-xs text-muted-foreground">
+                  Jugadoras: usuario y contraseña son el DNI.
+                </p>
+              ) : null}
             </div>
             <div className="flex flex-col gap-2">
               <Label htmlFor="password">Contrasena</Label>
               <PasswordInput
                 id="password"
-                placeholder="Tu contrasena"
+                placeholder={dniMode ? "Tu DNI" : "Tu contrasena"}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
@@ -85,12 +112,21 @@ export default function LoginPage() {
             <Button type="submit" className="w-full mt-5" disabled={loading}>
               {loading ? "Ingresando..." : "Iniciar Sesion"}
             </Button>
-            <p className="text-sm text-muted-foreground text-center">
-              {"No tenes cuenta? "}
-              <Link href="/auth/sign-up" className="text-primary underline underline-offset-4 hover:text-primary/80">
-                Registrate
-              </Link>
-            </p>
+            {!dniMode ? (
+              <p className="text-sm text-muted-foreground text-center">
+                {"No tenes cuenta de staff? "}
+                <Link
+                  href="/auth/sign-up"
+                  className="text-primary underline underline-offset-4 hover:text-primary/80"
+                >
+                  Registrate
+                </Link>
+              </p>
+            ) : (
+              <p className="text-sm text-muted-foreground text-center">
+                Si no podés entrar, pedile a la subcomisión que active tu cuenta.
+              </p>
+            )}
           </CardFooter>
         </form>
       </Card>
