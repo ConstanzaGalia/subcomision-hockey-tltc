@@ -1,6 +1,8 @@
 import { redirect } from "next/navigation"
 import { createClient } from "@/lib/supabase/server"
 import { formatDni } from "@/lib/categorias"
+import { AvanceCampana } from "@/components/landing/avance-campana"
+import { loadCampanaPublica } from "@/lib/campana-publica-server"
 import {
   Card,
   CardContent,
@@ -47,13 +49,17 @@ export default async function PortalPage() {
     .maybeSingle()
 
   if (!jugadora) {
+    const campana = await loadCampanaPublica()
     return (
-      <div className="space-y-3">
-        <h1 className="text-2xl font-bold text-foreground">Mi cuenta</h1>
-        <p className="text-muted-foreground leading-relaxed">
-          Tu usuario está activo, pero todavía no está vinculado a una ficha de jugadora.
-          Pedile a la subcomisión que sincronice las cuentas.
-        </p>
+      <div className="flex flex-col">
+        <AvanceCampana campana={campana} />
+        <div className="mx-auto w-full max-w-3xl space-y-3 px-4 py-6 sm:px-6">
+          <h1 className="text-2xl font-bold text-foreground">Mi cuenta</h1>
+          <p className="text-muted-foreground leading-relaxed">
+            Tu usuario está activo, pero todavía no está vinculado a una ficha de jugadora.
+            Pedile a la subcomisión que sincronice las cuentas.
+          </p>
+        </div>
       </div>
     )
   }
@@ -63,7 +69,8 @@ export default async function PortalPage() {
     asOne(jugadora.divisiones as { nombre: string } | { nombre: string }[] | null)?.nombre ??
     "—"
 
-  const [{ data: cuotas }, { data: parcelas }, { data: rifasRaw }] = await Promise.all([
+  const [campana, { data: cuotas }, { data: parcelas }, { data: rifasRaw }] = await Promise.all([
+    loadCampanaPublica(),
     supabase
       .from("cuota_extraordinaria")
       .select("id, nombre_apellido, moneda, metodo_pago, monto, fecha")
@@ -117,7 +124,10 @@ export default async function PortalPage() {
   const hayDeudaCalculable = rifas.some((r) => r.deuda != null)
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className="flex flex-col">
+      <AvanceCampana campana={campana} />
+
+      <div className="mx-auto flex w-full max-w-3xl flex-col gap-6 px-4 py-6 sm:px-6">
       <div>
         <h1 className="text-2xl font-bold text-foreground">Mi cuenta</h1>
         <p className="text-muted-foreground leading-relaxed">
@@ -303,6 +313,7 @@ export default async function PortalPage() {
           </div>
         )}
       </section>
+      </div>
     </div>
   )
 }

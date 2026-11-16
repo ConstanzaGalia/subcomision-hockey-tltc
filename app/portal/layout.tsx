@@ -34,7 +34,7 @@ export default async function PortalLayout({
   return (
     <div className="min-h-screen bg-background">
       <header className="border-b border-border">
-        <div className="mx-auto flex max-w-3xl items-center justify-between gap-3 px-4 py-3">
+        <div className="mx-auto flex max-w-7xl items-center justify-between gap-3 px-4 py-3 sm:px-6 lg:px-8">
           <Link href="/portal" className="flex items-center gap-3">
             <Image
               src="/images/logo-ltc.png"
@@ -51,7 +51,7 @@ export default async function PortalLayout({
           <PortalSignOutButton />
         </div>
       </header>
-      <main className="mx-auto max-w-3xl px-4 py-6">{children}</main>
+      <main>{children}</main>
     </div>
   )
 }

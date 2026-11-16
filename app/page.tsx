@@ -1,11 +1,10 @@
 import { createClient } from "@/lib/supabase/server"
 import { ParcelasMap, type ParcelaPublica } from "@/components/parcelas-map"
-import { AvanceCampana } from "@/components/landing/avance-campana"
+import { AvanceCampanaTeaser } from "@/components/landing/avance-campana-teaser"
 import { ProyectoCancha } from "@/components/landing/proyecto-cancha"
 import Image from "next/image"
 import Link from "next/link"
 import { WhatsAppParcelaFab, WhatsAppIcon, WHATSAPP_PARCELA_URL } from "@/components/whatsapp-parcela-fab"
-import { loadCampanaPublica } from "@/lib/campana-publica-server"
 import { TOTAL_PARCELAS } from "@/lib/campana-publica"
 import { Grid2x2, LayoutGrid, Shield } from "lucide-react"
 
@@ -17,12 +16,9 @@ export default async function Home() {
   } = await supabase.auth.getUser()
   const isLoggedIn = Boolean(user)
 
-  const [{ data }, campana] = await Promise.all([
-    supabase.rpc("get_parcelas_publicas"),
-    loadCampanaPublica(),
-  ])
+  const { data } = await supabase.rpc("get_parcelas_publicas")
   const parcelas = (data ?? []) as ParcelaPublica[]
-  const parcelasVendidas = Math.max(campana.parcelasVendidas, parcelas.length)
+  const parcelasVendidas = parcelas.length
   const parcelasDisponibles = Math.max(0, TOTAL_PARCELAS - parcelasVendidas)
   const progresoParcelas =
     TOTAL_PARCELAS > 0 ? Math.min(100, (parcelasVendidas / TOTAL_PARCELAS) * 100) : 0
@@ -303,7 +299,7 @@ export default async function Home() {
           </div>
         </section>
 
-        <AvanceCampana campana={campana} />
+        <AvanceCampanaTeaser />
 
         <ProyectoCancha />
       </main>
