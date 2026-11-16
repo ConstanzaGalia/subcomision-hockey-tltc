@@ -58,14 +58,14 @@ export function JugadoraSelect({
   return (
     <div className="flex flex-col gap-2">
       <Label htmlFor={id}>{label}</Label>
-      <div className="flex gap-2">
-        <Popover
-          open={open}
-          onOpenChange={(next) => {
-            setOpen(next)
-            if (!next) setQuery("")
-          }}
-        >
+      <Popover
+        open={open}
+        onOpenChange={(next) => {
+          setOpen(next)
+          if (!next) setQuery("")
+        }}
+      >
+        <div className="relative w-full">
           <PopoverTrigger asChild>
             <Button
               id={id}
@@ -74,9 +74,12 @@ export function JugadoraSelect({
               role="combobox"
               aria-expanded={open}
               disabled={disabled || jugadoras.length === 0}
-              className="w-full justify-between font-normal"
+              className={cn(
+                "w-full justify-between font-normal",
+                optional && selected ? "pr-16" : "pr-10",
+              )}
             >
-              <span className="truncate">
+              <span className="truncate text-left">
                 {selected
                   ? labelJugadora(selected)
                   : jugadoras.length === 0
@@ -86,56 +89,61 @@ export function JugadoraSelect({
               <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
             </Button>
           </PopoverTrigger>
-          <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0" align="start">
-            <Command shouldFilter={false}>
-              <CommandInput
-                placeholder="Ej: galia camila · o DNI"
-                value={query}
-                onValueChange={setQuery}
-              />
-              <CommandList>
-                <CommandEmpty>Sin resultados</CommandEmpty>
-                <CommandGroup>
-                  {filtered.map((j) => (
-                    <CommandItem
-                      key={j.id}
-                      value={j.id}
-                      onSelect={() => {
-                        onChange({
-                          id: j.id,
-                          nombreCompleto: displayNombreDesdeJugadora(j),
-                        })
-                        setOpen(false)
-                        setQuery("")
-                      }}
-                    >
-                      <Check
-                        className={cn(
-                          "mr-2 h-4 w-4",
-                          value === j.id ? "opacity-100" : "opacity-0",
-                        )}
-                      />
-                      <span className="truncate">{labelJugadora(j)}</span>
-                    </CommandItem>
-                  ))}
-                </CommandGroup>
-              </CommandList>
-            </Command>
-          </PopoverContent>
-        </Popover>
-        {optional && value ? (
-          <Button
-            type="button"
-            variant="ghost"
-            size="icon"
-            disabled={disabled}
-            aria-label="Quitar jugadora"
-            onClick={() => onChange({ id: null, nombreCompleto: null })}
-          >
-            <X className="h-4 w-4" />
-          </Button>
-        ) : null}
-      </div>
+          {optional && selected ? (
+            <button
+              type="button"
+              disabled={disabled}
+              aria-label="Quitar jugadora"
+              className="absolute top-1/2 right-8 z-10 inline-flex h-7 w-7 -translate-y-1/2 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground disabled:pointer-events-none disabled:opacity-50"
+              onClick={(e) => {
+                e.preventDefault()
+                e.stopPropagation()
+                onChange({ id: null, nombreCompleto: null })
+                setOpen(false)
+                setQuery("")
+              }}
+            >
+              <X className="h-4 w-4" />
+            </button>
+          ) : null}
+        </div>
+        <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0" align="start">
+          <Command shouldFilter={false}>
+            <CommandInput
+              placeholder="Ej: galia camila · o DNI"
+              value={query}
+              onValueChange={setQuery}
+            />
+            <CommandList>
+              <CommandEmpty>Sin resultados</CommandEmpty>
+              <CommandGroup>
+                {filtered.map((j) => (
+                  <CommandItem
+                    key={j.id}
+                    value={j.id}
+                    onSelect={() => {
+                      onChange({
+                        id: j.id,
+                        nombreCompleto: displayNombreDesdeJugadora(j),
+                      })
+                      setOpen(false)
+                      setQuery("")
+                    }}
+                  >
+                    <Check
+                      className={cn(
+                        "mr-2 h-4 w-4",
+                        value === j.id ? "opacity-100" : "opacity-0",
+                      )}
+                    />
+                    <span className="truncate">{labelJugadora(j)}</span>
+                  </CommandItem>
+                ))}
+              </CommandGroup>
+            </CommandList>
+          </Command>
+        </PopoverContent>
+      </Popover>
       {selected ? (
         <p className="text-xs text-muted-foreground">
           Se guarda como {displayNombreDesdeJugadora(selected)}.
