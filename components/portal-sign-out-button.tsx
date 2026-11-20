@@ -15,8 +15,15 @@ export function PortalSignOutButton() {
   }
 
   return (
-    <Button type="button" variant="outline" size="sm" onClick={handleSignOut}>
-      Cerrar sesión
+    <Button
+      type="button"
+      variant="outline"
+      size="sm"
+      className="h-10 shrink-0 px-3"
+      onClick={handleSignOut}
+    >
+      <span className="sm:hidden">Salir</span>
+      <span className="hidden sm:inline">Cerrar sesión</span>
     </Button>
   )
 }

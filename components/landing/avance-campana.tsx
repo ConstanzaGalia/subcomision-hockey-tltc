@@ -20,15 +20,15 @@ function SourceCard({
   icon: typeof LandPlot
 }) {
   return (
-    <div className="flex flex-col justify-between rounded-3xl border border-slate-200/80 bg-white p-6 shadow-sm">
-      <div className="mb-4 flex items-center justify-between">
-        <span className="font-heading rounded-full bg-slate-100 px-3 py-1 text-xs font-bold text-slate-700 uppercase">
+    <div className="flex flex-col justify-between rounded-2xl border border-slate-200/80 bg-white p-4 shadow-sm sm:rounded-3xl sm:p-6">
+      <div className="mb-3 flex items-center justify-between sm:mb-4">
+        <span className="font-heading rounded-full bg-slate-100 px-2.5 py-1 text-[10px] font-bold text-slate-700 uppercase sm:px-3 sm:text-xs">
           {title}
         </span>
-        <Icon className="h-4 w-4 text-[#00163d]" />
+        <Icon className="h-4 w-4 shrink-0 text-[#00163d]" />
       </div>
       <div>
-        <div className="font-heading text-xl font-black text-[#00163d]">{formatMoney("USD", usd)}</div>
+        <div className="font-heading text-lg font-black text-[#00163d] sm:text-xl">{formatMoney("USD", usd)}</div>
         {ars != null && ars > 0 && (
           <div className="mt-1 text-sm font-semibold text-slate-500">{formatMoney("ARS", ars)}</div>
         )}
@@ -38,23 +38,42 @@ function SourceCard({
   )
 }
 
-export function AvanceCampana({ campana }: { campana: CampanaPublica }) {
+export function AvanceCampana({
+  campana,
+  compact = false,
+}: {
+  campana: CampanaPublica
+  compact?: boolean
+}) {
   return (
-    <section id="avance" className="scroll-mt-28 bg-[#eff4ff] py-16">
+    <section
+      id="avance"
+      className={
+        compact
+          ? "scroll-mt-14 bg-[#eff4ff] py-8"
+          : "scroll-mt-16 bg-[#eff4ff] py-16"
+      }
+    >
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-        <div className="mb-10 flex flex-col justify-between gap-4 md:flex-row md:items-end">
+        <div className="mb-6 flex flex-col justify-between gap-4 md:mb-10 md:flex-row md:items-end">
           <div>
             <div className="font-heading mb-1 inline-flex items-center gap-2 text-xs font-black tracking-widest text-[#7c5800] uppercase">
               Transparencia
             </div>
-            <h2 className="font-heading text-3xl font-black text-[#00163d] uppercase sm:text-4xl">
+            <h2
+              className={
+                compact
+                  ? "font-heading text-2xl font-black text-[#00163d] uppercase"
+                  : "font-heading text-3xl font-black text-[#00163d] uppercase sm:text-4xl"
+              }
+            >
               Avance de la campaña
             </h2>
             <p className="mt-1 text-sm text-slate-600">
               Recaudado frente al objetivo estimado del proyecto.
             </p>
           </div>
-          <div className="flex items-center gap-4 rounded-2xl border border-slate-200 bg-white px-5 py-3 shadow-sm">
+          <div className="hidden items-center gap-4 rounded-2xl border border-slate-200 bg-white px-5 py-3 shadow-sm md:flex">
             <div>
               <span className="font-heading text-[10px] font-bold text-slate-400 uppercase">
                 Recaudado
@@ -75,7 +94,7 @@ export function AvanceCampana({ campana }: { campana: CampanaPublica }) {
           </div>
         </div>
 
-        <div className="relative overflow-hidden rounded-3xl bg-[#00163d] p-6 text-white shadow-md">
+        <div className="relative overflow-hidden rounded-3xl bg-[#00163d] p-4 text-white shadow-md sm:p-6">
           <div className="flex flex-col justify-between gap-4 md:flex-row md:items-end">
             <div>
               {campana.porcentaje != null && (
@@ -83,7 +102,7 @@ export function AvanceCampana({ campana }: { campana: CampanaPublica }) {
                   {campana.porcentaje}% del objetivo
                 </span>
               )}
-              <div className="font-heading mt-4 text-3xl font-black text-[#fcb812] sm:text-4xl">
+              <div className="font-heading mt-3 text-2xl font-black text-[#fcb812] sm:mt-4 sm:text-4xl">
                 {formatMoney("USD", campana.totalUsdEquivalente)}
               </div>
               <p className="mt-2 max-w-xl text-sm text-white/80">
@@ -112,7 +131,7 @@ export function AvanceCampana({ campana }: { campana: CampanaPublica }) {
           </div>
         </div>
 
-        <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="mt-4 grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-3">
           <SourceCard
             title="Parcelas"
             usd={campana.parcelasUsd}

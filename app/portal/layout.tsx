@@ -32,20 +32,20 @@ export default async function PortalLayout({
     [profile?.nombre, profile?.apellido].filter(Boolean).join(" ").trim() || "Mi cuenta"
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background pb-[env(safe-area-inset-bottom)]">
       <header className="border-b border-border">
-        <div className="mx-auto flex max-w-7xl items-center justify-between gap-3 px-4 py-3 sm:px-6 lg:px-8">
-          <Link href="/portal" className="flex items-center gap-3">
+        <div className="mx-auto flex max-w-5xl items-center justify-between gap-2 px-3 py-2.5 sm:px-6 sm:py-3">
+          <Link href="/portal" className="flex min-w-0 items-center gap-2.5">
             <Image
               src="/images/logo-ltc.png"
               alt="Lawn Tenis Club"
-              width={40}
-              height={40}
+              width={36}
+              height={36}
               className="rounded-md"
             />
-            <div>
-              <p className="text-sm font-semibold text-foreground">Portal jugadoras</p>
-              <p className="text-xs text-muted-foreground">{displayName}</p>
+            <div className="min-w-0">
+              <p className="truncate text-sm font-semibold text-foreground">Portal jugadoras</p>
+              <p className="truncate text-xs text-muted-foreground">{displayName}</p>
             </div>
           </Link>
           <PortalSignOutButton />

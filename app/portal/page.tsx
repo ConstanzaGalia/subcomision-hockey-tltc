@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server"
 import { formatDni } from "@/lib/categorias"
 import { AvanceCampana } from "@/components/landing/avance-campana"
 import { PortalCuotaEstadoClient } from "@/components/portal-cuota-estado-client"
+import { PortalNav } from "@/components/portal-nav"
 import { loadCampanaPublica } from "@/lib/campana-publica-server"
 import { labelEstadoCuota, type PortalCuotaEstadoRow } from "@/lib/portal-cuota-estado"
 import { Badge } from "@/components/ui/badge"
@@ -13,15 +14,6 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card"
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table"
-
 function formatFecha(fechaISO: string): string {
   const [y, m, d] = fechaISO.split("-")
   if (!y || !m || !d) return fechaISO
@@ -55,8 +47,9 @@ export default async function PortalPage() {
     const campana = await loadCampanaPublica()
     return (
       <div className="flex flex-col">
-        <AvanceCampana campana={campana} />
-        <div className="mx-auto w-full max-w-3xl space-y-3 px-4 py-6 sm:px-6">
+        <PortalNav links={[{ href: "#avance", label: "Avance" }, { href: "#cuenta", label: "Cuenta" }]} />
+        <AvanceCampana campana={campana} compact />
+        <div id="cuenta" className="mx-auto w-full max-w-5xl scroll-mt-14 space-y-3 px-3 py-6 sm:px-6">
           <h1 className="text-2xl font-bold text-foreground">Mi cuenta</h1>
           <p className="text-muted-foreground leading-relaxed">
             Tu usuario está activo, pero todavía no está vinculado a una ficha de jugadora.
@@ -131,7 +124,7 @@ export default async function PortalPage() {
   }))
 
   const rifas = (rifasRaw ?? []).map((r) => {
-    const campana = asOne(
+    const campanaRifa = asOne(
       r.rifas_campanas as
         | { nombre: string; precio_unitario: number | null }
         | { nombre: string; precio_unitario: number | null }[]
@@ -139,7 +132,7 @@ export default async function PortalPage() {
     )
     const pagos = (r.rifas_pagos as { monto: number }[] | null | undefined) ?? []
     const pagado = pagos.reduce((sum, p) => sum + Number(p.monto || 0), 0)
-    const precio = campana?.precio_unitario != null ? Number(campana.precio_unitario) : null
+    const precio = campanaRifa?.precio_unitario != null ? Number(campanaRifa.precio_unitario) : null
     const esperado =
       precio != null && Number.isFinite(precio)
         ? precio * (Number(r.cantidad) || 0)
@@ -148,7 +141,7 @@ export default async function PortalPage() {
       esperado != null ? Math.max(0, esperado - pagado) : null
     return {
       id: r.id,
-      campanaNombre: campana?.nombre ?? "Rifa",
+      campanaNombre: campanaRifa?.nombre ?? "Rifa",
       cantidad: Number(r.cantidad) || 0,
       moneda: r.moneda as string,
       fecha: r.fecha as string,
@@ -163,209 +156,221 @@ export default async function PortalPage() {
   const totalDeudaRifas = rifas.reduce((s, r) => s + (r.deuda ?? 0), 0)
   const hayDeudaCalculable = rifas.some((r) => r.deuda != null)
   const pagoCuotaPropia = (cuotas ?? []).length > 0
+  const rifasConDeuda = rifas.filter((r) => r.esperado != null)
 
   return (
     <div className="flex flex-col">
-      <AvanceCampana campana={campana} />
+      <PortalNav />
+      <AvanceCampana campana={campana} compact />
 
-      <div className="mx-auto flex w-full max-w-5xl flex-col gap-6 px-4 py-6 sm:px-6 lg:px-8">
-      <div>
-        <h1 className="text-2xl font-bold text-foreground">Mi cuenta</h1>
-        <p className="text-muted-foreground leading-relaxed">
-          Pagos registrados a tu nombre y deuda de rifas.
-        </p>
-      </div>
-
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base">Datos personales</CardTitle>
-        </CardHeader>
-        <CardContent className="grid gap-2 text-sm sm:grid-cols-3">
+      <div className="mx-auto flex w-full max-w-5xl flex-col gap-8 px-3 py-6 sm:gap-10 sm:px-6">
+        <section id="cuenta" className="scroll-mt-14 space-y-3">
           <div>
-            <p className="text-muted-foreground">Nombre</p>
-            <p className="font-medium text-foreground">
-              {jugadora.apellido}, {jugadora.nombre}
+            <h1 className="text-xl font-bold text-foreground sm:text-2xl">Mi cuenta</h1>
+            <p className="text-sm text-muted-foreground leading-relaxed">
+              Tus datos, pagos y el estado de la cuota del plantel.
             </p>
           </div>
-          <div>
-            <p className="text-muted-foreground">DNI</p>
-            <p className="font-medium text-foreground">{formatDni(String(jugadora.dni))}</p>
-          </div>
-          <div>
-            <p className="text-muted-foreground">División</p>
-            <p className="font-medium text-foreground">{divisionNombre}</p>
-          </div>
-        </CardContent>
-      </Card>
 
-      {hayDeudaCalculable ? (
-        <div className="grid gap-4 sm:grid-cols-2">
           <Card>
-            <CardHeader className="pb-2">
-              <CardDescription>Pagado en rifas</CardDescription>
-              <CardTitle className="text-2xl">
-                {totalPagadoRifas.toLocaleString("es-AR")}
-              </CardTitle>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base">Datos personales</CardTitle>
             </CardHeader>
+            <CardContent className="grid grid-cols-1 gap-3 text-sm">
+              <div className="flex items-baseline justify-between gap-3 border-b border-border pb-2">
+                <p className="text-muted-foreground">Nombre</p>
+                <p className="text-right font-medium text-foreground">
+                  {jugadora.apellido}, {jugadora.nombre}
+                </p>
+              </div>
+              <div className="flex items-baseline justify-between gap-3 border-b border-border pb-2">
+                <p className="text-muted-foreground">DNI</p>
+                <p className="font-medium text-foreground">{formatDni(String(jugadora.dni))}</p>
+              </div>
+              <div className="flex items-baseline justify-between gap-3">
+                <p className="text-muted-foreground">División</p>
+                <p className="font-medium text-foreground">{divisionNombre}</p>
+              </div>
+            </CardContent>
           </Card>
-          <Card>
-            <CardHeader className="pb-2">
-              <CardDescription>Deuda de rifas</CardDescription>
-              <CardTitle className="text-2xl">
-                {totalDeudaRifas.toLocaleString("es-AR")}
-              </CardTitle>
-            </CardHeader>
-          </Card>
-        </div>
-      ) : null}
+        </section>
 
-      <section className="space-y-3">
-        <div>
-          <h2 className="text-lg font-semibold text-foreground">Deuda de rifas</h2>
-          <p className="text-sm text-muted-foreground">
-            Se calcula cuando la campaña tiene precio por rifa: cantidad × precio − pagos.
-          </p>
-        </div>
-        {rifas.filter((r) => r.esperado != null).length === 0 ? (
-          <p className="text-sm text-muted-foreground">
-            No hay deuda calculable (sin asignaciones con precio de campaña).
-          </p>
-        ) : (
-          <div className="overflow-x-auto rounded-lg border">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Campaña</TableHead>
-                  <TableHead>Cant.</TableHead>
-                  <TableHead>Esperado</TableHead>
-                  <TableHead>Pagado</TableHead>
-                  <TableHead>Falta</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {rifas
-                  .filter((r) => r.esperado != null)
-                  .map((r) => (
-                    <TableRow key={r.id}>
-                      <TableCell className="font-medium">{r.campanaNombre}</TableCell>
-                      <TableCell>{r.cantidad}</TableCell>
-                      <TableCell>{moneyLabel(r.moneda, r.esperado ?? 0)}</TableCell>
-                      <TableCell>{moneyLabel(r.moneda, r.pagado)}</TableCell>
-                      <TableCell>{moneyLabel(r.moneda, r.deuda ?? 0)}</TableCell>
-                    </TableRow>
+        <hr className="border-border" />
+
+        <section id="rifas" className="scroll-mt-14 space-y-3">
+          <div>
+            <h2 className="text-lg font-semibold text-foreground sm:text-xl">Rifas</h2>
+            <p className="text-sm text-muted-foreground">
+              Deuda e historial a tu nombre.
+            </p>
+          </div>
+
+          {hayDeudaCalculable ? (
+            <div className="grid grid-cols-2 gap-2">
+              <Card>
+                <CardHeader className="p-3 pb-2 sm:p-6 sm:pb-2">
+                  <CardDescription>Pagado</CardDescription>
+                  <CardTitle className="text-xl tabular-nums sm:text-2xl">
+                    {totalPagadoRifas.toLocaleString("es-AR")}
+                  </CardTitle>
+                </CardHeader>
+              </Card>
+              <Card>
+                <CardHeader className="p-3 pb-2 sm:p-6 sm:pb-2">
+                  <CardDescription>Deuda</CardDescription>
+                  <CardTitle className="text-xl tabular-nums sm:text-2xl">
+                    {totalDeudaRifas.toLocaleString("es-AR")}
+                  </CardTitle>
+                </CardHeader>
+              </Card>
+            </div>
+          ) : null}
+
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base">Deuda por campaña</CardTitle>
+              <CardDescription>
+                Cantidad × precio − pagos (si la campaña tiene precio).
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {rifasConDeuda.length === 0 ? (
+                <p className="text-sm text-muted-foreground">
+                  Sin deuda calculable todavía.
+                </p>
+              ) : (
+                <ul className="divide-y rounded-lg border">
+                  {rifasConDeuda.map((r) => (
+                    <li key={r.id} className="space-y-1 px-3 py-3">
+                      <div className="flex items-start justify-between gap-2">
+                        <p className="font-medium text-foreground">{r.campanaNombre}</p>
+                        <p className="shrink-0 text-sm font-semibold tabular-nums text-foreground">
+                          Falta {moneyLabel(r.moneda, r.deuda ?? 0)}
+                        </p>
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        {r.cantidad} rifas · esperado {moneyLabel(r.moneda, r.esperado ?? 0)} ·
+                        pagado {moneyLabel(r.moneda, r.pagado)}
+                      </p>
+                    </li>
                   ))}
-              </TableBody>
-            </Table>
-          </div>
-        )}
-      </section>
+                </ul>
+              )}
+            </CardContent>
+          </Card>
 
-      <section className="space-y-3">
-        <div>
-          <h2 className="text-lg font-semibold text-foreground">Rifas (historial)</h2>
-          <p className="text-sm text-muted-foreground">Asignaciones y pagos registrados.</p>
-        </div>
-        {(rifas ?? []).length === 0 ? (
-          <p className="text-sm text-muted-foreground">Sin rifas vinculadas.</p>
-        ) : (
-          <div className="overflow-x-auto rounded-lg border">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Fecha</TableHead>
-                  <TableHead>Campaña</TableHead>
-                  <TableHead>Cant.</TableHead>
-                  <TableHead>Pagado</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {rifas.map((r) => (
-                  <TableRow key={`h-${r.id}`}>
-                    <TableCell>{formatFecha(r.fecha)}</TableCell>
-                    <TableCell>{r.campanaNombre}</TableCell>
-                    <TableCell>{r.cantidad}</TableCell>
-                    <TableCell>{moneyLabel(r.moneda, r.pagado)}</TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
-        )}
-      </section>
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base">Historial</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {rifas.length === 0 ? (
+                <p className="text-sm text-muted-foreground">Sin rifas vinculadas.</p>
+              ) : (
+                <ul className="divide-y rounded-lg border">
+                  {rifas.map((r) => (
+                    <li
+                      key={`h-${r.id}`}
+                      className="flex items-center justify-between gap-3 px-3 py-3"
+                    >
+                      <div className="min-w-0">
+                        <p className="truncate font-medium text-foreground">{r.campanaNombre}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {formatFecha(r.fecha)} · {r.cantidad} rifas
+                        </p>
+                      </div>
+                      <p className="shrink-0 text-sm font-medium tabular-nums">
+                        {moneyLabel(r.moneda, r.pagado)}
+                      </p>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </CardContent>
+          </Card>
+        </section>
 
-      <section className="space-y-3">
-        <div className="flex flex-wrap items-center gap-2">
-          <h2 className="text-lg font-semibold text-foreground">Cuota extraordinaria</h2>
-          <Badge
-            variant="secondary"
-            className={
-              pagoCuotaPropia
-                ? "bg-emerald-100 text-emerald-800 hover:bg-emerald-100"
-                : "bg-red-100 text-red-800 hover:bg-red-100"
-            }
-          >
-            {labelEstadoCuota(pagoCuotaPropia)}
-          </Badge>
-        </div>
-        <p className="text-sm text-muted-foreground">Historial de lo pagado a tu nombre.</p>
-        {(cuotas ?? []).length === 0 ? (
-          <p className="text-sm text-muted-foreground">Sin pagos de cuota vinculados.</p>
-        ) : (
-          <div className="overflow-x-auto rounded-lg border">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Fecha</TableHead>
-                  <TableHead>Método</TableHead>
-                  <TableHead>Monto</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {(cuotas ?? []).map((c) => (
-                  <TableRow key={c.id}>
-                    <TableCell>{formatFecha(c.fecha)}</TableCell>
-                    <TableCell>{c.metodo_pago}</TableCell>
-                    <TableCell>{moneyLabel(c.moneda, Number(c.monto))}</TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
-        )}
-      </section>
+        <hr className="border-border" />
 
-      <PortalCuotaEstadoClient rows={cuotaEstado} />
-
-      <section className="space-y-3">
-        <div>
-          <h2 className="text-lg font-semibold text-foreground">Parcelas</h2>
-          <p className="text-sm text-muted-foreground">Historial de ventas vinculadas.</p>
-        </div>
-        {(parcelas ?? []).length === 0 ? (
-          <p className="text-sm text-muted-foreground">Sin parcelas vinculadas.</p>
-        ) : (
-          <div className="overflow-x-auto rounded-lg border">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Fecha</TableHead>
-                  <TableHead>Monto (USD)</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {(parcelas ?? []).map((p) => (
-                  <TableRow key={p.id}>
-                    <TableCell>
-                      {formatFecha(String(p.created_at).slice(0, 10))}
-                    </TableCell>
-                    <TableCell>USD {Number(p.precio).toLocaleString("es-AR")}</TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+        <section id="cuota" className="scroll-mt-14 space-y-3">
+          <div className="flex flex-wrap items-center gap-2">
+            <h2 className="text-lg font-semibold text-foreground sm:text-xl">Mi cuota</h2>
+            <Badge
+              variant="secondary"
+              className={
+                pagoCuotaPropia
+                  ? "bg-emerald-100 text-emerald-800 hover:bg-emerald-100"
+                  : "bg-red-100 text-red-800 hover:bg-red-100"
+              }
+            >
+              {labelEstadoCuota(pagoCuotaPropia)}
+            </Badge>
           </div>
-        )}
-      </section>
+          <p className="text-sm text-muted-foreground">Lo pagado a tu nombre.</p>
+
+          <Card>
+            <CardContent className="pt-4">
+              {(cuotas ?? []).length === 0 ? (
+                <p className="text-sm text-muted-foreground">Sin pagos de cuota vinculados.</p>
+              ) : (
+                <ul className="divide-y rounded-lg border">
+                  {(cuotas ?? []).map((c) => (
+                    <li
+                      key={c.id}
+                      className="flex items-center justify-between gap-3 px-3 py-3"
+                    >
+                      <div>
+                        <p className="font-medium text-foreground">{formatFecha(c.fecha)}</p>
+                        <p className="text-xs text-muted-foreground">{c.metodo_pago}</p>
+                      </div>
+                      <p className="shrink-0 text-sm font-semibold tabular-nums">
+                        {moneyLabel(c.moneda, Number(c.monto))}
+                      </p>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </CardContent>
+          </Card>
+        </section>
+
+        <hr className="border-border" />
+
+        <section id="plantel-cuota" className="scroll-mt-14">
+          <PortalCuotaEstadoClient rows={cuotaEstado} />
+        </section>
+
+        <hr className="border-border" />
+
+        <section id="parcelas" className="scroll-mt-14 space-y-3">
+          <div>
+            <h2 className="text-lg font-semibold text-foreground sm:text-xl">Parcelas</h2>
+            <p className="text-sm text-muted-foreground">Ventas vinculadas a tu nombre.</p>
+          </div>
+          <Card>
+            <CardContent className="pt-4">
+              {(parcelas ?? []).length === 0 ? (
+                <p className="text-sm text-muted-foreground">Sin parcelas vinculadas.</p>
+              ) : (
+                <ul className="divide-y rounded-lg border">
+                  {(parcelas ?? []).map((p) => (
+                    <li
+                      key={p.id}
+                      className="flex items-center justify-between gap-3 px-3 py-3"
+                    >
+                      <p className="text-sm text-muted-foreground">
+                        {formatFecha(String(p.created_at).slice(0, 10))}
+                      </p>
+                      <p className="text-sm font-semibold tabular-nums">
+                        USD {Number(p.precio).toLocaleString("es-AR")}
+                      </p>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </CardContent>
+          </Card>
+        </section>
       </div>
     </div>
   )
