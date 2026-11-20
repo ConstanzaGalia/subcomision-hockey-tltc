@@ -4,7 +4,7 @@ import {
   TOTAL_PARCELAS,
   type CampanaPublica,
 } from "@/lib/campana-publica"
-import { Banknote, Handshake, LandPlot, Package, Scale, Ticket } from "lucide-react"
+import { Banknote, Handshake, LandPlot, Package, Scale } from "lucide-react"
 
 function SourceCard({
   title,
@@ -162,13 +162,6 @@ export function AvanceCampana({
             ars={campana.balanceArs}
             hint="Ingresos para cancha menos todos los gastos"
             icon={Scale}
-          />
-          <SourceCard
-            title="Rifas"
-            usd={campana.rifasUsd}
-            ars={campana.rifasArs}
-            hint="Rendimiento rendido"
-            icon={Ticket}
           />
         </div>
 
