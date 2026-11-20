@@ -93,31 +93,13 @@ export function PortalCuotaEstadoClient({
     })
   }, [rows, divisionId, bloqueId, estado, search])
 
-  const pagaron = filtered.filter((r) => r.pago).length
-  const deben = filtered.length - pagaron
-
   return (
     <div className="space-y-4">
       <div>
-        <h2 className="text-xl font-semibold text-foreground">Plantel — cuota</h2>
+        <h2 className="text-xl font-semibold text-foreground">Cuota extraordinaria</h2>
         <p className="mt-1 text-sm text-muted-foreground leading-relaxed">
           Quién pagó y quién debe. Buscá o filtrá por división y bloque.
         </p>
-      </div>
-
-      <div className="grid grid-cols-3 gap-2">
-        <div className="rounded-xl border px-3 py-3 text-center">
-          <p className="text-[11px] text-muted-foreground">Total</p>
-          <p className="text-lg font-semibold tabular-nums">{filtered.length}</p>
-        </div>
-        <div className="rounded-xl border px-3 py-3 text-center">
-          <p className="text-[11px] text-muted-foreground">Pagaron</p>
-          <p className="text-lg font-semibold tabular-nums text-emerald-700">{pagaron}</p>
-        </div>
-        <div className="rounded-xl border px-3 py-3 text-center">
-          <p className="text-[11px] text-muted-foreground">Deben</p>
-          <p className="text-lg font-semibold tabular-nums text-red-700">{deben}</p>
-        </div>
       </div>
 
       <div className="space-y-2">
