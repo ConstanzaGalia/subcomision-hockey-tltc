@@ -2,7 +2,9 @@ import { redirect } from "next/navigation"
 import { createClient } from "@/lib/supabase/server"
 import { formatDni } from "@/lib/categorias"
 import { AvanceCampana } from "@/components/landing/avance-campana"
+import { PortalCuotaEstadoClient } from "@/components/portal-cuota-estado-client"
 import { loadCampanaPublica } from "@/lib/campana-publica-server"
+import type { PortalCuotaEstadoRow } from "@/lib/portal-cuota-estado"
 import {
   Card,
   CardContent,
@@ -69,7 +71,13 @@ export default async function PortalPage() {
     asOne(jugadora.divisiones as { nombre: string } | { nombre: string }[] | null)?.nombre ??
     "—"
 
-  const [campana, { data: cuotas }, { data: parcelas }, { data: rifasRaw }] = await Promise.all([
+  const [
+    campana,
+    { data: cuotas },
+    { data: parcelas },
+    { data: rifasRaw },
+    { data: cuotaEstadoRaw, error: cuotaEstadoError },
+  ] = await Promise.all([
     loadCampanaPublica(),
     supabase
       .from("cuota_extraordinaria")
@@ -88,7 +96,38 @@ export default async function PortalPage() {
       )
       .eq("jugadora_id", jugadoraId)
       .order("fecha", { ascending: false }),
+    supabase.rpc("get_portal_cuota_estado"),
   ])
+
+  if (cuotaEstadoError) {
+    console.error("Error get_portal_cuota_estado:", cuotaEstadoError.message)
+  }
+
+  const cuotaEstado: PortalCuotaEstadoRow[] = ((cuotaEstadoRaw ?? []) as Array<{
+    jugadora_id: string
+    apellido: string
+    nombre: string
+    dni: string
+    division_id: string
+    division_nombre: string
+    bloque_id: string | null
+    bloque_nombre: string | null
+    pago: boolean
+    pagos_count: number | string
+    ultima_fecha: string | null
+  }>).map((r) => ({
+    jugadora_id: r.jugadora_id,
+    apellido: r.apellido,
+    nombre: r.nombre,
+    dni: String(r.dni ?? ""),
+    division_id: r.division_id,
+    division_nombre: r.division_nombre,
+    bloque_id: r.bloque_id,
+    bloque_nombre: r.bloque_nombre,
+    pago: Boolean(r.pago),
+    pagos_count: Number(r.pagos_count) || 0,
+    ultima_fecha: r.ultima_fecha,
+  }))
 
   const rifas = (rifasRaw ?? []).map((r) => {
     const campana = asOne(
@@ -127,7 +166,7 @@ export default async function PortalPage() {
     <div className="flex flex-col">
       <AvanceCampana campana={campana} />
 
-      <div className="mx-auto flex w-full max-w-3xl flex-col gap-6 px-4 py-6 sm:px-6">
+      <div className="mx-auto flex w-full max-w-5xl flex-col gap-6 px-4 py-6 sm:px-6 lg:px-8">
       <div>
         <h1 className="text-2xl font-bold text-foreground">Mi cuenta</h1>
         <p className="text-muted-foreground leading-relaxed">
@@ -255,7 +294,7 @@ export default async function PortalPage() {
       <section className="space-y-3">
         <div>
           <h2 className="text-lg font-semibold text-foreground">Cuota extraordinaria</h2>
-          <p className="text-sm text-muted-foreground">Historial de lo pagado (sin deuda en esta versión).</p>
+          <p className="text-sm text-muted-foreground">Historial de lo pagado a tu nombre.</p>
         </div>
         {(cuotas ?? []).length === 0 ? (
           <p className="text-sm text-muted-foreground">Sin pagos de cuota vinculados.</p>
@@ -282,6 +321,8 @@ export default async function PortalPage() {
           </div>
         )}
       </section>
+
+      <PortalCuotaEstadoClient rows={cuotaEstado} />
 
       <section className="space-y-3">
         <div>
