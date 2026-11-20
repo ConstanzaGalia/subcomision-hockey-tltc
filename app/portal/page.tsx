@@ -4,7 +4,8 @@ import { formatDni } from "@/lib/categorias"
 import { AvanceCampana } from "@/components/landing/avance-campana"
 import { PortalCuotaEstadoClient } from "@/components/portal-cuota-estado-client"
 import { loadCampanaPublica } from "@/lib/campana-publica-server"
-import type { PortalCuotaEstadoRow } from "@/lib/portal-cuota-estado"
+import { labelEstadoCuota, type PortalCuotaEstadoRow } from "@/lib/portal-cuota-estado"
+import { Badge } from "@/components/ui/badge"
 import {
   Card,
   CardContent,
@@ -161,6 +162,7 @@ export default async function PortalPage() {
   const totalPagadoRifas = rifas.reduce((s, r) => s + r.pagado, 0)
   const totalDeudaRifas = rifas.reduce((s, r) => s + (r.deuda ?? 0), 0)
   const hayDeudaCalculable = rifas.some((r) => r.deuda != null)
+  const pagoCuotaPropia = (cuotas ?? []).length > 0
 
   return (
     <div className="flex flex-col">
@@ -292,10 +294,20 @@ export default async function PortalPage() {
       </section>
 
       <section className="space-y-3">
-        <div>
+        <div className="flex flex-wrap items-center gap-2">
           <h2 className="text-lg font-semibold text-foreground">Cuota extraordinaria</h2>
-          <p className="text-sm text-muted-foreground">Historial de lo pagado a tu nombre.</p>
+          <Badge
+            variant="secondary"
+            className={
+              pagoCuotaPropia
+                ? "bg-emerald-100 text-emerald-800 hover:bg-emerald-100"
+                : "bg-red-100 text-red-800 hover:bg-red-100"
+            }
+          >
+            {labelEstadoCuota(pagoCuotaPropia)}
+          </Badge>
         </div>
+        <p className="text-sm text-muted-foreground">Historial de lo pagado a tu nombre.</p>
         {(cuotas ?? []).length === 0 ? (
           <p className="text-sm text-muted-foreground">Sin pagos de cuota vinculados.</p>
         ) : (
