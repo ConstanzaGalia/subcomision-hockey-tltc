@@ -98,7 +98,7 @@ export function PortalCuotaEstadoClient({
       <div>
         <h2 className="text-xl font-semibold text-foreground">Cuota extraordinaria</h2>
         <p className="mt-1 text-sm text-muted-foreground leading-relaxed">
-          Quién pagó y quién debe. Buscá o filtrá por división y bloque.
+          Estado de cuota extraordinaria de todas las jugadoras
         </p>
       </div>
 
